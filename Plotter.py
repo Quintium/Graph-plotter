@@ -18,6 +18,15 @@ class GraphPlotter:
         # replace ^ in the function with **
         function = function.replace("^", "**")
 
+        # separate characters from numbers and brackets by multiplication
+        for i in range(len(function) - 1, -1, -1):
+            if function[i].isalpha() and self.is_standalone(function, i) and self.char_equals(function, i + 1, "("):
+                function = function[:i + 1] + "*" + function[i + 1:]
+            if (function[i] == ")" or function[i].isdigit()) and self.char_exists(function, i + 1) and (function[i + 1].isalpha() or function[i + 1] == "("):
+                function = function[:i + 1] + "*" + function[i + 1:]
+            if (function[i] == ")" and self.char_exists(function, i + 1) and function[i + 1].isdigit()):
+                function = function[:i + 1] + "*" + function[i + 1:]
+
         # replace backwards standalone es with exp(1) to avoid sympy convusing it with a variable
         for i in range(len(function) - 1, -1, -1):
             if function[i] == "e" and self.is_standalone(function, i):
@@ -30,13 +39,13 @@ class GraphPlotter:
         if "=" in function:
             function = function[function.index("=") + 1:]
 
-        # loop through function backwards
+        """# loop through function backwards
         self.indices = []
         for i in range(len(function) - 1, -1, -1):
             # check if the character is a x between two non letters
             if function[i] == "x" and (self.is_standalone(function, i)):
                 # if so, add the index to the list
-                self.indices.append(i)
+                self.indices.append(i)"""
 
         self.functionStr = function
 
@@ -57,7 +66,15 @@ class GraphPlotter:
 
     # check if char in string is not part of a word
     def is_standalone(self, string, i):
-        return (i - 1 < 0 or not string[i - 1].isalpha()) and (i + 1 > len(string) - 1 or not string[i + 1].isalpha())
+        return (not self.char_exists(string, i - 1) or not string[i - 1].isalpha()) and (not self.char_exists(string, i + 1) or not string[i + 1].isalpha())
+
+    # check if index is in range of the string
+    def char_exists(self, string, index):
+        return index >= 0 and index < len(string)
+
+    # check if char in string exists and equals the given char
+    def char_equals(self, string, index, char):
+        return index >= 0 and index < len(string) and string[index] == char
 
     def map_value(self, value, low1, high1, low2, high2):
         return low2 + (value - low1) * (high2 - low2) / (high1 - low1)
@@ -69,9 +86,12 @@ class GraphPlotter:
             value = self.function(x)
             if isinstance(value, Expr):
                 value = value.evalf()
+                if isinstance(value, Expr):
+                    return None
+                else:
+                    return value
             else:
-                value = float(value)
-            return value
+                return value
         except:
             return None
 
