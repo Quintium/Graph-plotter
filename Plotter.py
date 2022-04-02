@@ -64,7 +64,7 @@ class GraphPlotter:
         self.max_x = 10
         self.min_y = -10
         self.max_y = 10
-        self.zoom_speed = 0.05
+        self.zoom_speed = 0.08
 
     # check if char in string is not part of a word
     def is_standalone(self, string, i):
@@ -95,32 +95,43 @@ class GraphPlotter:
             return None
 
     # function to zoom in
-    def zoom_in(self):
+    def zoom_in(self, pos):
         # if zoom limit of 0.00000001 is reached, return
         if (self.max_x - self.min_x) < 0.00000001 or (self.max_y - self.min_y) < 0.00000001:
             return
 
-        change_x = (self.max_x - self.min_x) * self.zoom_speed
-        change_y = (self.max_y - self.min_y) * self.zoom_speed
-
-        self.min_x += change_x
-        self.max_x -= change_x
-        self.min_y += change_y
-        self.max_y -= change_y
+        self.zoom(pos, -self.zoom_speed * (self.max_x - self.min_x), -self.zoom_speed * (self.max_y - self.min_y))
 
     # function to zoom out
-    def zoom_out(self):
+    def zoom_out(self, pos):
         # if zoom limit of 100000000 is reached, return
         if (self.max_x - self.min_x) > 100000000 or (self.max_y - self.min_y) > 100000000:
             return
 
-        change_x = (self.max_x - self.min_x) * self.zoom_speed
-        change_y = (self.max_y - self.min_y) * self.zoom_speed
+        self.zoom(pos, self.zoom_speed * (self.max_x - self.min_x), self.zoom_speed * (self.max_y - self.min_y))
 
-        self.min_x -= change_x
-        self.max_x += change_x
-        self.min_y -= change_y
-        self.max_y += change_y
+    # function to zoom based on mouse position and total change
+    def zoom(self, pos, change_x, change_y):
+        # convert mouse position to units
+        pos_x = self.map_value(pos[0], 0, self.width, self.min_x, self.max_x)
+        pos_y = self.map_value(pos[1], 0, self.height, self.max_y, self.min_y)
+
+        # equation: map_value(pos) in previous zoom = map_value(pos) in new zoom => equation was solved for change in x and y
+        min_x_change = (pos_x - self.min_x) * (1 - (self.max_x - self.min_x + change_x) / (self.max_x - self.min_x))
+        max_x_change = min_x_change + change_x
+        min_y_change = (pos_y - self.min_y) * (1 - (self.max_y - self.min_y + change_y) / (self.max_y - self.min_y))
+        max_y_change = min_y_change + change_y
+
+        # zooming
+        self.min_x += min_x_change
+        self.max_x += max_x_change
+        self.min_y += min_y_change
+        self.max_y += max_y_change
+
+        # self.min_x -= change[0] / 2
+        # self.max_x += change[0] / 2
+        # self.min_y -= change[1] / 2
+        # self.max_y += change[1] / 2
 
     # move screen
     def move(self, rel):
@@ -287,9 +298,18 @@ while True:
         # check for mouse wheel event
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 4:
-                graph_plotter.zoom_in()
+                graph_plotter.zoom_in(event.pos)
             elif event.button == 5:
-                graph_plotter.zoom_out()
+                graph_plotter.zoom_out(event.pos)
+
+            # set cursor to hand if left mouse button is pressed
+            if event.button == 1:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+
+        # if left mouse button is released, set cursor to arrow
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
         # check for mouse drag event
         elif event.type == pygame.MOUSEMOTION:
