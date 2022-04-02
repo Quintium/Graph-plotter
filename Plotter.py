@@ -36,7 +36,7 @@ class GraphPlotter:
         self.reset_timer = None
 
         self.functions = []
-        self.function_names = []
+        self.function_strs = []
 
         # define colors list as red, blue, green, orange, cyan, magenta, brown, yellow, purple, gold
         self.colors = [(255, 0, 0), (0, 0, 255), (0, 255, 0), (255, 165, 0), (0, 255, 255), (255, 0, 255), (165, 42, 42), (255, 255, 0), (128, 0, 128), (255, 215, 0)]
@@ -84,15 +84,15 @@ class GraphPlotter:
 
     # add function to list
     def add_function(self, function):
-        function_name, function_lambda = self.parse_function(function)
+        function_str, function_lambda = self.parse_function(function)
         self.functions.append(function_lambda)
-        self.function_names.append(function_name)
+        self.function_strs.append(function_str)
 
     # replace function in list
     def replace_function(self, function, index):
-        function_name, function_lambda = self.parse_function(function)
+        function_str, function_lambda = self.parse_function(function)
         self.functions[index] = function_lambda
-        self.function_names[index] = function_name
+        self.function_strs[index] = function_str
 
     # check if char in string is not part of a word
     def is_standalone(self, string, i):
@@ -115,7 +115,7 @@ class GraphPlotter:
         # eval functon
         try:
             # if value is a float or int, return it
-            value = self.functions[self.function_names.index(string)](x)
+            value = self.functions[self.function_strs.index(string)](x)
             if isinstance(value, float) or isinstance(value, int):
                 return value
             # if value is a complex number, return the real part
@@ -259,7 +259,7 @@ class GraphPlotter:
             x = self.map_value(pixel, 0, self.width, self.min_x, self.max_x)
 
             # evaluate the function
-            y = self.get_value(x, self.function_names[index])
+            y = self.get_value(x, self.function_strs[index])
 
             if y is not None:
                 # map x from -10 to 10 to 0 to screen width
@@ -403,9 +403,10 @@ graph_plotter = GraphPlotter(screen, width, height - 80, small_font)
 
 # define graph area and the function textbox
 graph_area = RectArea(0, 0, width, height - 80)
-textbox = Textbox(20, height - 60, width - 40, 40, "f(x) = ", "", middle_font, graph_plotter.colors[0])
+textbox = Textbox(20, height - 57, width - 40, 34, "f(x) = ", "", middle_font, graph_plotter.colors[0])
 graph_plotter.add_function("")
 function_index = 0
+function_strs = [""]
 
 # main loop
 frames = 0
@@ -457,9 +458,10 @@ while True:
                     function_index += 1
                     if function_index >= len(graph_plotter.functions):
                         graph_plotter.add_function("")
+                        function_strs.append("")
 
                     # get function name based on index, starting at f, g, h, ...
-                    textbox = Textbox(20, height - 60, width - 40, 40, chr(ord('f') + function_index) + "(x) = ", graph_plotter.function_names[function_index], middle_font, graph_plotter.colors[function_index])
+                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function_strs[function_index], middle_font, graph_plotter.colors[function_index])
 
             # if up button is pressed, load the previous function
             elif event.key == pygame.K_UP:
@@ -468,7 +470,7 @@ while True:
                     function_index -= 1
 
                     # get function name based on index, starting at f, g, h, ...
-                    textbox = Textbox(20, height - 60, width - 40, 40, chr(ord('f') + function_index) + "(x) = ", graph_plotter.function_names[function_index], middle_font, graph_plotter.colors[function_index])
+                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function_strs[function_index], middle_font, graph_plotter.colors[function_index])
 
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -479,6 +481,7 @@ while True:
 
     if frames % 10 == 0:
         graph_plotter.replace_function(textbox.text, function_index)
+        function_strs[function_index] = textbox.text
 
     # if the mouse is over the graph area, change the cursor to hand, if it's over the textbox, change the cursor to ibeam, else to arrow
     if graph_area.contains(pygame.mouse.get_pos()):
@@ -496,4 +499,3 @@ while True:
         frames = 0
 
     clock.tick(75)
-    
