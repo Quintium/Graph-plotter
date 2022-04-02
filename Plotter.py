@@ -5,11 +5,13 @@
 # The grid is drawn every 2 units of x and y.
 # At the bottom is a bar with sliders for zoom and animation speed.
 
-import pygame
+import pygame, pygame.gfxdraw
 from math import *
 from numpy import *
 from sympy import *
 from sympy.parsing.sympy_parser import parse_expr
+from functools import lru_cache
+from time import time
 
 # class for graph plotter
 class GraphPlotter:
@@ -66,6 +68,8 @@ class GraphPlotter:
         self.max_y = 10
         self.zoom_speed = 0.08
 
+        
+
     # check if char in string is not part of a word
     def is_standalone(self, string, i):
         return (not self.char_exists(string, i - 1) or not string[i - 1].isalpha()) and (not self.char_exists(string, i + 1) or not string[i + 1].isalpha())
@@ -82,6 +86,7 @@ class GraphPlotter:
         return low2 + (value - low1) * (high2 - low2) / (high1 - low1)
 
     # function that returns the value of the function at a given x
+    @lru_cache(maxsize=100000)
     def get_value(self, x):
         # eval functon
         try:
@@ -127,11 +132,6 @@ class GraphPlotter:
         self.max_x += max_x_change
         self.min_y += min_y_change
         self.max_y += max_y_change
-
-        # self.min_x -= change[0] / 2
-        # self.max_x += change[0] / 2
-        # self.min_y -= change[1] / 2
-        # self.max_y += change[1] / 2
 
     # move screen
     def move(self, rel):
@@ -227,6 +227,7 @@ class GraphPlotter:
                 y = self.map_value(y, self.max_y, self.min_y, 0, self.height)
 
                 if previousX is not None:
+                    # antialiasing line with gfxdraw
                     pygame.draw.line(screen, (255, 0, 0), (previousX, previousY), (x, y))
 
                 # save previous x and y
@@ -290,6 +291,9 @@ while not formula_entered:
 graph_plotter = GraphPlotter(function, screen)
 
 # main loop
+i = 0
+last_time = time()
+clock = pygame.time.Clock()
 while True:
     graph_plotter.draw_grid()
     graph_plotter.draw_function()
@@ -319,3 +323,13 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             quit()
+
+    i += 1
+    if i % 100 == 0:
+        print(GraphPlotter.get_value.cache_info())
+        # print fps
+        print(f"FPS: {int(100 / (time() - last_time))}")
+        last_time = time()
+
+    clock.tick(75)
+    
