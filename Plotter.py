@@ -17,14 +17,11 @@ from time import time
 # class for graph plotter
 class GraphPlotter:
     # clean function up upon initialization
-    def __init__(self, function, screen):
+    def __init__(self, screen, width, height, font):
         # set screen
         self.screen = screen
-        self.width = self.screen.get_width()
-        self.height = self.screen.get_height()
-
-        # set font
-        self.small_font = pygame.font.SysFont("arial", 12)
+        self.width = width
+        self.height = height
 
         # set zoom
         self.min_x = -self.width / 50 / 2
@@ -41,11 +38,11 @@ class GraphPlotter:
         self.functions = []
         self.function_names = []
 
-        # add function
-        self.add_function(function) # TODO: don't add function
-
         # define colors list as red, blue, green, orange, cyan, magenta, brown, yellow, purple, gold
         self.colors = [(255, 0, 0), (0, 0, 255), (0, 255, 0), (255, 165, 0), (0, 255, 255), (255, 0, 255), (165, 42, 42), (255, 255, 0), (128, 0, 128), (255, 215, 0)]
+
+        # set font
+        self.font = font
 
     # parse function
     def parse_function(self, function):
@@ -203,34 +200,46 @@ class GraphPlotter:
         x0_pixels = self.map_value(0, self.min_x, self.max_x, 0, self.width)
         y0_pixels = self.map_value(0, self.min_y, self.max_y, self.height, 0)
 
-        # draw a grid with the calculated grid unit
+        # draw light grey grid with distance grid_unit / 5
+        for x in arange(ceil(self.min_x / grid_unit) * grid_unit, self.max_x + limit * 2, grid_unit / 5):
+            # calculate x value in pixels
+            x_pixels = self.map_value(x, self.min_x, self.max_x, 0, self.width)
+            pygame.draw.line(self.screen, (245, 245, 245), (x_pixels, 0), (x_pixels, self.height))
+
+        for y in arange(ceil(self.min_y / grid_unit) * grid_unit, self.max_y + limit * 2, grid_unit / 5):
+            # calculate y value in pixels
+            y_pixels = self.map_value(y, self.min_y, self.max_y, self.height, 0)
+            pygame.draw.line(self.screen, (245, 245, 245), (0, y_pixels), (self.width, y_pixels))
+
+        # draw grey grid with distance grid_unit
         for x in arange(ceil(self.min_x / grid_unit) * grid_unit, self.max_x + limit * 2, grid_unit):
             # calculate x value in pixels
             x_pixels = self.map_value(x, self.min_x, self.max_x, 0, self.width)
             pygame.draw.line(self.screen, (200, 200, 200), (x_pixels, 0), (x_pixels, self.height))
-
-            # draw number along axes
-            if x != 0:
-                text = self.small_font.render(str(int(x)) if power >= 0 else str(round(x, -power)), True, (0, 0, 0))
-                text_y = y0_pixels + 1
-
-                # limit text_y to screen
-                text_y = max(0, min(text_y, self.height - text.get_height()))
-                self.screen.blit(text, (x_pixels - text.get_width() - 1, text_y))
 
         for y in arange(ceil(self.min_y / grid_unit) * grid_unit, self.max_y + limit * 2, grid_unit):
             # calculate y value in pixels
             y_pixels = self.map_value(y, self.min_y, self.max_y, self.height, 0)
             pygame.draw.line(self.screen, (200, 200, 200), (0, y_pixels), (self.width, y_pixels))
 
-            # draw number along axes
-            if y != 0:
-                text = self.small_font.render(str(int(y)) if power >= 0 else str(round(y, -power)), True, (0, 0, 0))
+        # draw numbers along the axes
+        for x in arange(ceil(self.min_x / grid_unit) * grid_unit, self.max_x + limit * 2, grid_unit):
+            if abs(x) > grid_unit / 2:
+                text = self.font.render(str(int(x)) if power >= 0 else str(round(x, -power)), True, (0, 0, 0))
+                text_y = y0_pixels + 1
+
+                # limit text_y to screen
+                text_y = max(1, min(text_y, self.height - text.get_height() - 1))
+                self.screen.blit(text, (self.map_value(x, self.min_x, self.max_x, 0, self.width) - text.get_width() - 1, text_y))
+
+        for y in arange(ceil(self.min_y / grid_unit) * grid_unit, self.max_y + limit * 2, grid_unit):
+            if abs(y) > grid_unit / 2:
+                text = self.font.render(str(int(y)) if power >= 0 else str(round(y, -power)), True, (0, 0, 0))
                 text_x = x0_pixels + 3
 
                 # limit text_x to screen
-                text_x = max(0, min(text_x, self.width - text.get_width()))
-                self.screen.blit(text, (text_x, y_pixels - text.get_height() + 1))
+                text_x = max(1, min(text_x, self.width - text.get_width() - 1))
+                self.screen.blit(text, (text_x, self.map_value(y, self.min_y, self.max_y, self.height, 0) - text.get_height() + 1))
 
         # draw x and y axis
         pygame.draw.line(self.screen, (0, 0, 0), (x0_pixels, 0), (x0_pixels, self.height))
@@ -298,7 +307,7 @@ class GraphPlotter:
 
     # start animation
     def start_animation(self):
-        self.animation_speed = 2
+        self.animation_speed = 3
         self.animation_x = self.min_x
         self.reset_timer = None
     
@@ -385,16 +394,17 @@ icon = pygame.image.load("icon.png")
 pygame.display.set_icon(icon)
 
 # create an arial font
-small_font = pygame.font.SysFont("arial", 12)
-middle_font = pygame.font.SysFont("arial", 28)
-big_font = pygame.font.SysFont("arial", 58)
+small_font = pygame.font.SysFont("Arial", 12)
+middle_font = pygame.font.SysFont("Roboto", 26)
+big_font = pygame.font.SysFont("Roboto", 58)
 
 # create graph plotter for function
-graph_plotter = GraphPlotter("", screen)
+graph_plotter = GraphPlotter(screen, width, height - 80, small_font)
 
 # define graph area and the function textbox
 graph_area = RectArea(0, 0, width, height - 80)
 textbox = Textbox(20, height - 60, width - 40, 40, "f(x) = ", "", middle_font, graph_plotter.colors[0])
+graph_plotter.add_function("")
 function_index = 0
 
 # main loop
@@ -406,7 +416,7 @@ while True:
 
     # draw bar at the bottom of the screen separated by a thin grey line
     pygame.draw.rect(screen, (255, 255, 255), (0, height - 80, width, 80))
-    pygame.draw.line(screen, (200, 200, 200), (0, height - 80), (width, height - 80), 2)
+    pygame.draw.line(screen, (180, 180, 180), (0, height - 80), (width, height - 80), 1)
 
     # draw function box and name
     textbox.draw(screen)
@@ -468,7 +478,7 @@ while True:
         textbox.handle_event(event)
 
     if frames % 10 == 0:
-        graph_plotter.replace_function(textbox.text, function_index) # TODO: parse function only every 10 frames
+        graph_plotter.replace_function(textbox.text, function_index)
 
     # if the mouse is over the graph area, change the cursor to hand, if it's over the textbox, change the cursor to ibeam, else to arrow
     if graph_area.contains(pygame.mouse.get_pos()):
