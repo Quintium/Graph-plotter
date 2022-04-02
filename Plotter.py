@@ -6,7 +6,7 @@
 # The graph can be animated by pressing the spacebar.
 # The function can be changed in the bar at the bottom.
 
-import pygame
+import pygame, pygame.gfxdraw
 from math import *
 from numpy import *
 from sympy import *
@@ -44,8 +44,8 @@ class GraphPlotter:
         # add function
         self.add_function(function) # TODO: don't add function
 
-        # define colors list as red, blue, green, orange, purple, cyan, magenta
-        self.colors = [(255, 0, 0), (0, 0, 255), (0, 255, 0), (255, 165, 0), (128, 0, 128), (0, 255, 255), (255, 0, 255)]
+        # define colors list as red, blue, green, orange, cyan, magenta, brown, yellow, purple, gold
+        self.colors = [(255, 0, 0), (0, 0, 255), (0, 255, 0), (255, 165, 0), (0, 255, 255), (255, 0, 255), (165, 42, 42), (255, 255, 0), (128, 0, 128), (255, 215, 0)]
 
     # parse function
     def parse_function(self, function):
@@ -245,7 +245,7 @@ class GraphPlotter:
         animation_pixels = self.map_value(self.animation_x, self.min_x, self.max_x, 0, self.width)
 
         # draw the graph
-        for pixel in arange(0, animation_pixels):
+        for pixel in arange(0, animation_pixels, 3):
             # convert pixel to x
             x = self.map_value(pixel, 0, self.width, self.min_x, self.max_x)
 
@@ -270,6 +270,15 @@ class GraphPlotter:
                 previousX = None
                 previousY = None
 
+    # function that draws all graphs
+    def draw_graphs(self):
+        # draw grid
+        self.draw_grid()
+
+        # draw function
+        for i in range(len(self.functions)):
+            self.draw_function(i)
+
         # function that handles the animation state
         if self.animation_speed == 0:
             self.animation_x = self.max_x
@@ -286,15 +295,6 @@ class GraphPlotter:
             else:
                 # increase x of animation by animation speed converted to units
                 self.animation_x += self.map_value(self.animation_speed, 0, self.width, 0, (self.max_x - self.min_x))
-
-    # function that draws all graphs
-    def draw_graphs(self):
-        # draw grid
-        self.draw_grid()
-
-        # draw function
-        for i in range(len(self.functions)):
-            self.draw_function(i)
 
     # start animation
     def start_animation(self):
@@ -320,7 +320,7 @@ class RectArea:
 
 # class for a pygame textbox
 class Textbox:
-    def __init__(self, x, y, width, height, default_text, text, font):
+    def __init__(self, x, y, width, height, default_text, text, font, color):
         self.x = x
         self.y = y
         self.width = width
@@ -329,6 +329,7 @@ class Textbox:
         self.default_text = default_text
         self.text = text
         self.font = font
+        self.color = color
         self.active = False
 
     # function that handles the textbox
@@ -350,15 +351,23 @@ class Textbox:
 
     # function that draws the textbox
     def draw(self, screen):
-        # draw the textbox
-        pygame.draw.rect(screen, (220, 220, 220), (self.x, self.y, self.width, self.height), 1)
+        # draw grey line under textbox
+        pygame.draw.line(screen, (220, 220, 220), (self.x, self.y + self.height), (self.x + self.width, self.y + self.height))
+
+        # draw a circle filled in with self.color before text
+        pygame.gfxdraw.filled_circle(screen, int(self.x + 10), int(self.y + self.height / 2), 8, self.color)
+        pygame.gfxdraw.aacircle(screen, int(self.x + 10), int(self.y + self.height / 2), 8, (0, 0, 0))
+        #pygame.draw.circle(screen, self.color, (self.x + 10, self.y + self.height / 2), 10)
 
         # draw the text
         text = self.font.render(self.default_text + self.text, True, (0, 0, 0))
         rect = text.get_rect()
-        rect.x = self.x + 5
-        rect.centery =  self.y + self.height / 2
+        rect.x = self.x + 30
+        rect.centery = self.y + self.height / 2
         screen.blit(text, rect)
+
+        # draw white rectangle at the end of the text
+        pygame.draw.rect(screen, (255, 255, 255), (self.x + self.width, rect.y, 1000, rect.height))
 
         # draw cursor if textbox is active
         if self.active and time() % 1 < 0.5:
@@ -385,7 +394,7 @@ graph_plotter = GraphPlotter("", screen)
 
 # define graph area and the function textbox
 graph_area = RectArea(0, 0, width, height - 80)
-textbox = Textbox(20, height - 60, width - 40, 40, "f(x) = ", "", middle_font)
+textbox = Textbox(20, height - 60, width - 40, 40, "f(x) = ", "", middle_font, graph_plotter.colors[0])
 function_index = 0
 
 # main loop
@@ -401,16 +410,6 @@ while True:
 
     # draw function box and name
     textbox.draw(screen)
-    # text = middle_font.render("f(x) = " + graph_plotter.functionStr, True, (0, 0, 0))
-    # rect = text.get_rect()
-    # rect.centery = height - 40
-    # rect.x = 30
-    # screen.blit(text, rect)
-    # rect.x -= 5
-    # rect.y -= 5
-    # rect.width += 10
-    # rect.height += 10
-    # pygame.draw.rect(screen, (230, 230, 230), rect, 1)
 
     pygame.display.flip()
 
@@ -429,7 +428,8 @@ while True:
 
         # check for mouse drag event
         elif event.type == pygame.MOUSEMOTION:
-            if event.buttons[0] == 1:
+            # only drag if mouse is on the graph area
+            if event.buttons[0] == 1 and graph_area.contains(event.pos):
                 graph_plotter.move(event.rel)
 
         # if space bar is pressed, start or stop animation
@@ -443,13 +443,13 @@ while True:
             # if down button is pressed, load the next function
             elif event.key == pygame.K_DOWN:
                 # only load the next function if limit of functions hasn't been reached
-                if function_index < 10:
+                if function_index < 9:
                     function_index += 1
                     if function_index >= len(graph_plotter.functions):
                         graph_plotter.add_function("")
 
                     # get function name based on index, starting at f, g, h, ...
-                    textbox = Textbox(20, height - 60, width - 40, 40, chr(ord('f') + function_index) + "(x) = ", graph_plotter.function_names[function_index], middle_font)
+                    textbox = Textbox(20, height - 60, width - 40, 40, chr(ord('f') + function_index) + "(x) = ", graph_plotter.function_names[function_index], middle_font, graph_plotter.colors[function_index])
 
             # if up button is pressed, load the previous function
             elif event.key == pygame.K_UP:
@@ -458,7 +458,7 @@ while True:
                     function_index -= 1
 
                     # get function name based on index, starting at f, g, h, ...
-                    textbox = Textbox(20, height - 60, width - 40, 40, chr(ord('f') + function_index) + "(x) = ", graph_plotter.function_names[function_index], middle_font)
+                    textbox = Textbox(20, height - 60, width - 40, 40, chr(ord('f') + function_index) + "(x) = ", graph_plotter.function_names[function_index], middle_font, graph_plotter.colors[function_index])
 
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -466,6 +466,8 @@ while True:
 
         # let the textbox handle the event
         textbox.handle_event(event)
+
+    if frames % 10 == 0:
         graph_plotter.replace_function(textbox.text, function_index) # TODO: parse function only every 10 frames
 
     # if the mouse is over the graph area, change the cursor to hand, if it's over the textbox, change the cursor to ibeam, else to arrow
