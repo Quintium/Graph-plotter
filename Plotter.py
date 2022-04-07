@@ -6,43 +6,15 @@
 # The graph can be animated by pressing the spacebar.
 # The function can be changed in the bar at the bottom.
 
-import pygame, pygame.gfxdraw, string
-from math import *
-from numpy import *
-from sympy import *
+import pygame, pygame.gfxdraw, string, numpy, math, sympy
 from sympy.parsing.sympy_parser import parse_expr
 from functools import lru_cache
 from time import time
 
-# class for graph plotter
-class GraphPlotter:
-    # clean function up upon initialization
-    def __init__(self, screen, width, height, font):
-        # set screen
-        self.screen = screen
-        self.width = width
-        self.height = height
-
-        # set zoom
-        self.min_x = -self.width / 50 / 2
-        self.max_x = self.width / 50 / 2
-        self.min_y = -self.height / 50 / 2
-        self.max_y = self.height / 50 / 2
-        self.zoom_speed = 0.08
-
-        # set animation state
-        self.animation_speed = 0
-        self.animation_x = self.max_x
-        self.reset_timer = None
-
-        self.functions = []
-        self.function_strs = []
-
-        # define colors list as red, blue, green, orange, cyan, magenta, brown, yellow, purple, gold
-        self.colors = [(255, 0, 0), (0, 0, 255), (0, 255, 0), (255, 165, 0), (0, 255, 255), (255, 0, 255), (165, 42, 42), (255, 255, 0), (128, 0, 128), (255, 215, 0)]
-
-        # set font
-        self.font = font
+# class for functions
+class Function:
+    def __init__(self, string):
+        self.string, self.function = self.parse_function(string)	
 
     # parse function
     def parse_function(self, function):
@@ -78,30 +50,18 @@ class GraphPlotter:
         # try to parse function with sympy
         try:
             functionExpr = parse_expr(function)
-            return function, lambdify(symbols("x"), functionExpr)
+            return function, sympy.lambdify(sympy.symbols("x"), functionExpr)
         except:
             try:
-                return function, lambdify(symbols("x"), function)
+                return function, sympy.lambdify(sympy.symbols("x"), function)
             except:
                 return function, lambda x: None
-
-    # add function to list
-    def add_function(self, function):
-        function_str, function_lambda = self.parse_function(function)
-        self.functions.append(function_lambda)
-        self.function_strs.append(function_str)
-
-    # replace function in list
-    def replace_function(self, function, index):
-        function_str, function_lambda = self.parse_function(function)
-        self.functions[index] = function_lambda
-        self.function_strs[index] = function_str
 
     # function to add missing brackets
     def add_missing_brackets(self, function):
         # check if function has missing brackets
         brackets = function.count("(") - function.count(")")
-        
+
         # if there are missing brackets, add them
         if brackets > 0:
             function += ")" * brackets
@@ -120,16 +80,13 @@ class GraphPlotter:
     def char_equals(self, string, index, char):
         return index >= 0 and index < len(string) and string[index] == char
 
-    def map_value(self, value, low1, high1, low2, high2):
-        return low2 + (value - low1) * (high2 - low2) / (high1 - low1)
-
     # function that returns the value of the function at a given x
-    @lru_cache(maxsize=100000)
-    def get_value(self, x, string):
+    @lru_cache(maxsize=20000)
+    def get_value(self, x):
         # eval functon
         try:
             # if value is a float or int, return it
-            value = self.functions[self.function_strs.index(string)](x)
+            value = self.function(x)
             if isinstance(value, float) or isinstance(value, int):
                 return value
             # if value is a complex number, return the real part
@@ -139,6 +96,55 @@ class GraphPlotter:
                 return None
         except:
             return None
+
+    # return if function is empty
+    def is_empty(self):
+        return self.string == ""
+
+    # print cache info
+    def print_cache_info(self):
+        print(self.get_value.cache_info())
+
+
+# class for graph plotter
+class GraphPlotter:
+    # clean function up upon initialization
+    def __init__(self, screen, width, height, font):
+        # set screen
+        self.screen = screen
+        self.width = width
+        self.height = height
+
+        # set zoom
+        self.min_x = -self.width / 50 / 2
+        self.max_x = self.width / 50 / 2
+        self.min_y = -self.height / 50 / 2
+        self.max_y = self.height / 50 / 2
+        self.zoom_speed = 0.08
+
+        # set animation state
+        self.animation_speed = 0
+        self.animation_x = self.max_x
+        self.reset_timer = None
+
+        self.functions = []
+
+        # define colors list as red, blue, green, orange, cyan, magenta, brown, yellow, purple, gold
+        self.colors = [(255, 0, 0), (0, 0, 255), (0, 255, 0), (255, 165, 0), (0, 255, 255), (255, 0, 255), (165, 42, 42), (255, 255, 0), (128, 0, 128), (255, 215, 0)]
+
+        # set font
+        self.font = font
+
+    # add function to list
+    def add_function(self, string):
+        self.functions.append(Function(string))
+
+    # replace function in list
+    def replace_function(self, string, index):
+        self.functions[index] = Function(string)
+
+    def map_value(self, value, low1, high1, low2, high2):
+        return low2 + (value - low1) * (high2 - low2) / (high1 - low1)
 
     # function to zoom in
     def zoom_in(self, pos):
@@ -236,29 +242,29 @@ class GraphPlotter:
         small_grid_unit = grid_unit / 5
 
         # draw light grey grid with distance grid_unit / 5
-        for x in arange(ceil(self.min_x / small_grid_unit) * small_grid_unit, self.max_x + limit * 2, small_grid_unit):
+        for x in numpy.arange(math.ceil(self.min_x / small_grid_unit) * small_grid_unit, self.max_x + limit * 2, small_grid_unit):
             # calculate x value in pixels
             x_pixels = self.map_value(x, self.min_x, self.max_x, 0, self.width)
             pygame.draw.line(self.screen, (245, 245, 245), (x_pixels, 0), (x_pixels, self.height))
 
-        for y in arange(ceil(self.min_y / small_grid_unit) * small_grid_unit, self.max_y + limit * 2, small_grid_unit):
+        for y in numpy.arange(math.ceil(self.min_y / small_grid_unit) * small_grid_unit, self.max_y + limit * 2, small_grid_unit):
             # calculate y value in pixels
             y_pixels = self.map_value(y, self.min_y, self.max_y, self.height, 0)
             pygame.draw.line(self.screen, (245, 245, 245), (0, y_pixels), (self.width, y_pixels))
 
         # draw grey grid with distance grid_unit
-        for x in arange(ceil(self.min_x / grid_unit) * grid_unit, self.max_x + limit * 2, grid_unit):
+        for x in numpy.arange(math.ceil(self.min_x / grid_unit) * grid_unit, self.max_x + limit * 2, grid_unit):
             # calculate x value in pixels
             x_pixels = self.map_value(x, self.min_x, self.max_x, 0, self.width)
             pygame.draw.line(self.screen, (200, 200, 200), (x_pixels, 0), (x_pixels, self.height))
 
-        for y in arange(ceil(self.min_y / grid_unit) * grid_unit, self.max_y + limit * 2, grid_unit):
+        for y in numpy.arange(math.ceil(self.min_y / grid_unit) * grid_unit, self.max_y + limit * 2, grid_unit):
             # calculate y value in pixels
             y_pixels = self.map_value(y, self.min_y, self.max_y, self.height, 0)
             pygame.draw.line(self.screen, (200, 200, 200), (0, y_pixels), (self.width, y_pixels))
 
         # draw numbers along the axes
-        for x in arange(ceil(self.min_x / grid_unit) * grid_unit, self.max_x + limit * 2, grid_unit):
+        for x in numpy.arange(math.ceil(self.min_x / grid_unit) * grid_unit, self.max_x + limit * 2, grid_unit):
             if abs(x) > grid_unit / 2:
                 text = self.font.render(str(int(x)) if power >= 0 else str(round(x, -power)), True, (0, 0, 0))
                 text_y = y0_pixels + 1
@@ -267,7 +273,7 @@ class GraphPlotter:
                 text_y = max(1, min(text_y, self.height - text.get_height() - 1))
                 self.screen.blit(text, (self.map_value(x, self.min_x, self.max_x, 0, self.width) - text.get_width() - 1, text_y))
 
-        for y in arange(ceil(self.min_y / grid_unit) * grid_unit, self.max_y + limit * 2, grid_unit):
+        for y in numpy.arange(math.ceil(self.min_y / grid_unit) * grid_unit, self.max_y + limit * 2, grid_unit):
             if abs(y) > grid_unit / 2:
                 text = self.font.render(str(int(y)) if power >= 0 else str(round(y, -power)), True, (0, 0, 0))
                 text_x = x0_pixels + 3
@@ -289,12 +295,12 @@ class GraphPlotter:
         animation_pixels = self.map_value(self.animation_x, self.min_x, self.max_x, 0, self.width)
 
         # draw the graph
-        for pixel in arange(0, animation_pixels, 3):
+        for pixel in numpy.arange(0, animation_pixels, 3):
             # convert pixel to x
             x = self.map_value(pixel, 0, self.width, self.min_x, self.max_x)
 
             # evaluate the function
-            y = self.get_value(x, self.function_strs[index])
+            y = self.functions[index].get_value(x)
 
             if y is not None:
                 # map x from -10 to 10 to 0 to screen width
@@ -322,7 +328,7 @@ class GraphPlotter:
         # draw function
         for i in range(len(self.functions)):
             # draw function if the string is not empty
-            if self.function_strs[i] != "":
+            if not self.functions[i].is_empty():
                 self.draw_function(i)
 
         # function that handles the animation state
@@ -352,6 +358,12 @@ class GraphPlotter:
     def stop_animation(self):
         self.animation_speed = 0
         self.animation_x = self.max_x
+
+    # print cache info of every function
+    def print_cache_info(self):
+        for f in self.functions:
+            if not f.is_empty():
+                f.print_cache_info()
 
 # class for a pygame rect area
 class RectArea:
@@ -468,6 +480,17 @@ class Textbox:
         # draw white rectangle at the end of the text
         pygame.draw.rect(screen, (255, 255, 255), (self.x + self.width, rect.y, 1000, rect.height))
 
+# function to add missing brackets
+def add_missing_brackets(function):
+    # check if function has missing brackets
+    brackets = function.count("(") - function.count(")")
+
+    # if there are missing brackets, add them
+    if brackets > 0:
+        function += ")" * brackets
+
+    return function
+
 # initialize pygame and the screen with caption "Graph plotter"
 pygame.init()
 width = 1000
@@ -547,7 +570,7 @@ while True:
                         function_strs.append("")
 
                     # get function name based on index, starting at f, g, h, ...
-                    function = graph_plotter.add_missing_brackets(function_strs[function_index])
+                    function = add_missing_brackets(function_strs[function_index])
                     textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, middle_font, graph_plotter.colors[function_index])
 
             # if up button is pressed, load the previous function
@@ -557,7 +580,7 @@ while True:
                     function_index -= 1
 
                     # get function name based on index, starting at f, g, h, ...
-                    function = graph_plotter.add_missing_brackets(function_strs[function_index])
+                    function = add_missing_brackets(function_strs[function_index])
                     textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, middle_font, graph_plotter.colors[function_index])
 
         # resize the graph plotter if the window is resized
@@ -594,8 +617,9 @@ while True:
 
     frames += 1
     if time() - last_time > 1:
-        print(GraphPlotter.get_value.cache_info())
+        graph_plotter.print_cache_info()
         print(f"FPS: {int(frames / (time() - last_time))}")
+        print()
         last_time = time()
         frames = 0
 
