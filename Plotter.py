@@ -100,13 +100,8 @@ class GraphPlotter:
     # function to add missing brackets
     def add_missing_brackets(self, function):
         # check if function has missing brackets
-        brackets = 0
-        for char in function:
-            if char == "(":
-                brackets += 1
-            elif char == ")":
-                brackets -= 1
-
+        brackets = function.count("(") - function.count(")")
+        
         # if there are missing brackets, add them
         if brackets > 0:
             function += ")" * brackets
@@ -392,7 +387,7 @@ class Textbox:
         self.height = height
         self.area = RectArea(x, y, width, height)
 
-    # function that handles the textbox
+    # function that handles the textbox and returns whether the textbox was changed
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and self.active:
             if event.key == pygame.K_BACKSPACE:
@@ -400,6 +395,8 @@ class Textbox:
                 if self.cursor_pos > 0:
                     self.text = self.text[:self.cursor_pos - 1] + self.text[self.cursor_pos:]
                     self.cursor_pos -= 1
+
+                    return True
             elif event.key == pygame.K_RETURN:
                 self.active = False
             elif event.key == pygame.K_LEFT:
@@ -416,6 +413,8 @@ class Textbox:
                     # add character to text
                     self.text = self.text[:self.cursor_pos] + event.unicode + self.text[self.cursor_pos:]
                     self.cursor_pos += 1
+
+                    return True
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             self.active = self.area.contains(event.pos)
@@ -439,7 +438,7 @@ class Textbox:
                         self.cursor_pos = i + 1
                     break
 
-        return None
+        return False
 
     # function that draws the textbox
     def draw(self, screen):
@@ -580,12 +579,10 @@ while True:
             pygame.quit()
             quit()
 
-        # let the textbox handle the event
-        textbox.handle_event(event)
-
-    if frames % 10 == 0:
-        graph_plotter.replace_function(textbox.text, function_index)
-        function_strs[function_index] = textbox.text
+        # let the textbox handle the event and refresh functions if changed
+        if textbox.handle_event(event):
+            graph_plotter.replace_function(textbox.text, function_index)
+            function_strs[function_index] = textbox.text
 
     # if the mouse is over the graph area, change the cursor to hand, if it's over the textbox, change the cursor to ibeam, else to arrow
     if graph_area.contains(pygame.mouse.get_pos()):
