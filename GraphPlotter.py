@@ -1,122 +1,6 @@
-# Pygame graph plotter that plots a function given by the user
-# There's an option to animate the graph, the zoom can be controlled by the mouse wheel and the screen can be dragged around.
-# The function is given as a string and can contain any mathematical function with x as a variable.
-# Python expressions as well as integrals and derivatives are supported via integrate() and diff() functions.
-# The grid is drawn every 2 units of x and y.
-# The graph can be animated by pressing the spacebar.
-# The function can be changed in the bar at the bottom.
-
-import pygame, pygame.gfxdraw, string, numpy, math, sympy
-from sympy.parsing.sympy_parser import parse_expr
-from functools import lru_cache
+import pygame, pygame.gfxdraw, math, numpy
 from time import time
-
-# class for functions
-class Function:
-    def __init__(self, string):
-        self.string, self.function = self.parse_function(string)	
-
-    # parse function
-    def parse_function(self, function):
-        # strip function of whitespace
-        function = function.strip()
-
-        # strip function of f(x)=, g(x)=, y= ...
-        if "=" in function:
-            function = function[function.index("=") + 1:]
-
-        # separate characters from numbers and brackets by multiplication
-        for i in range(len(function) - 1, -1, -1):
-            if function[i].isalpha() and self.is_standalone(function, i) and self.char_equals(function, i + 1, "("):
-                function = function[:i + 1] + "*" + function[i + 1:]
-            if (function[i] == ")" or function[i].isdigit()) and self.char_exists(function, i + 1) and (function[i + 1].isalpha() or function[i + 1] == "("):
-                function = function[:i + 1] + "*" + function[i + 1:]
-            if (function[i] == ")" and self.char_exists(function, i + 1) and function[i + 1].isdigit()):
-                function = function[:i + 1] + "*" + function[i + 1:]
-
-        # replace ^ in the function with **
-        function = function.replace("^", "**")
-
-        # check function for missing closed brackets
-        function = self.add_missing_brackets(function)
-
-        # replace backwards standalone es with exp(1) and i with ((-1)**(1/2)) to avoid sympy confusing it with a variable
-        for i in range(len(function) - 1, -1, -1):
-            if function[i] == "e" and self.is_standalone(function, i):
-                function = function[:i] + "exp(1)" + function[i + 1:]
-            if function[i] == "i" and self.is_standalone(function, i):
-                function = function[:i] + "((-1)**(1/2))" + function[i + 1:]
-
-        # try to parse function with sympy
-        try:
-            functionExpr = parse_expr(function)
-            return function, sympy.lambdify(sympy.symbols("x"), functionExpr)
-        except:
-            try:
-                return function, sympy.lambdify(sympy.symbols("x"), function)
-            except:
-                return function, lambda x: None
-
-    # function to add missing brackets
-    def add_missing_brackets(self, function):
-        # check if function has missing brackets
-        brackets = function.count("(") - function.count(")")
-
-        # if there are missing brackets, add them
-        if brackets > 0:
-            function += ")" * brackets
-
-        return function
-
-    # check if char in string is not part of a word
-    def is_standalone(self, string, i):
-        return (not self.char_exists(string, i - 1) or not string[i - 1].isalpha()) and (not self.char_exists(string, i + 1) or not string[i + 1].isalpha())
-
-    # check if index is in range of the string
-    def char_exists(self, string, index):
-        return index >= 0 and index < len(string)
-
-    # check if char in string exists and equals the given char
-    def char_equals(self, string, index, char):
-        return index >= 0 and index < len(string) and string[index] == char
-
-    # function that returns the value of the function at a given x
-    @lru_cache(maxsize=20000)
-    def get_value(self, x):
-        # eval functon
-        try:
-            # if value is a float or int, return it
-            value = self.function(x)
-            if isinstance(value, float) or isinstance(value, int):
-                return value
-            else:
-                return None
-        except:
-            return None
-
-    # return if function is empty
-    def is_empty(self):
-        return self.string == ""
-
-    # print cache info
-    def print_cache_info(self):
-        print(self.get_value.cache_info())
-
-# class for points
-class Point:
-    def __init__(self, x, y, index, description):
-        self.x = x
-        self.y = y
-        self.index = index
-        self.descriptions = [description]
-
-    # add point to point if same x values
-    def add_point(self, x, index, description):
-        # check if point is same x values
-        if index == self.index and x == self.x:
-            self.descriptions.append(description)
-            return True
-        return False
+from Function import Function
 
 # class for graph plotter
 class GraphPlotter:
@@ -326,7 +210,7 @@ class GraphPlotter:
 
                 if previousX is not None:
                     # draw line from previous point to current point
-                    pygame.draw.line(screen, self.colors[index], (previousX, previousY), (x, y))
+                    pygame.draw.line(self.screen, self.colors[index], (previousX, previousY), (x, y))
 
                 # save previous x and y
                 previousX = x
@@ -366,7 +250,7 @@ class GraphPlotter:
 
             # draw circle with inside color of function
             pygame.draw.circle(self.screen, self.colors[hovered_point.index], (x, y), 7)
-            pygame.gfxdraw.aacircle(screen, int(x), int(y), 7, (0, 0, 0))
+            pygame.gfxdraw.aacircle(self.screen, int(x), int(y), 7, (0, 0, 0))
 
             # draw white rectangle with grey border below the point with all information
 
@@ -383,10 +267,10 @@ class GraphPlotter:
             pygame.draw.rect(self.screen, (255, 255, 255), (x - width / 2, y + 10, width, height))
             pygame.draw.rect(self.screen, (200, 200, 200), (x - width / 2, y + 10, width, height), 1)
 
-            screen.blit(coordinates, (x - coordinates.get_width() / 2, y + 13))
+            self.screen.blit(coordinates, (x - coordinates.get_width() / 2, y + 13))
             cur_y = y + 13 + coordinates.get_height() + 3
             for desc in descriptions:
-                screen.blit(desc, (x - desc.get_width() / 2, cur_y))
+                self.screen.blit(desc, (x - desc.get_width() / 2, cur_y))
                 cur_y += desc.get_height()
             
 
@@ -594,268 +478,18 @@ class GraphPlotter:
 
         self.special_points.append(Point(x, y, index, description))
 
-# class for a pygame rect area
-class RectArea:
-    def __init__(self, x, y, width, height):
+# class for points
+class Point:
+    def __init__(self, x, y, index, description):
         self.x = x
         self.y = y
-        self.width = width
-        self.height = height
+        self.index = index
+        self.descriptions = [description]
 
-    def contains(self, pos):
-        return self.x <= pos[0] <= self.x + self.width and self.y <= pos[1] <= self.y + self.height
-
-# class for a pygame textbox
-class Textbox:
-    def __init__(self, x, y, width, height, default_text, text, font, color):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.area = RectArea(x, y, width, height)
-        self.default_text = default_text
-        self.text = text
-        self.font = font
-        self.color = color
-        self.active = True
-        self.cursor_pos = len(text)
-
-    # resize textbox
-    def resize(self, x, y, width, height):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.area = RectArea(x, y, width, height)
-
-    # function that handles the textbox and returns whether the textbox was changed
-    def handle_event(self, event):
-        if event.type == pygame.KEYDOWN and self.active:
-            if event.key == pygame.K_BACKSPACE:
-                # remove last character
-                if self.cursor_pos > 0:
-                    self.text = self.text[:self.cursor_pos - 1] + self.text[self.cursor_pos:]
-                    self.cursor_pos -= 1
-
-                    return True
-            elif event.key == pygame.K_RETURN:
-                self.active = False
-            elif event.key == pygame.K_LEFT:
-                # move cursor left if cursor is not at the beginning
-                if self.cursor_pos > 0:
-                    self.cursor_pos -= 1
-            elif event.key == pygame.K_RIGHT:
-                # move cursor right if cursor is not at the end
-                if self.cursor_pos < len(self.text):
-                    self.cursor_pos += 1
-            else:
-                # check if character is a letter, number, space or symbol
-                if event.unicode != "" and (event.unicode in string.ascii_letters or event.unicode in string.digits or event.unicode in string.punctuation or event.unicode in string.whitespace):
-                    # add character to text
-                    self.text = self.text[:self.cursor_pos] + event.unicode + self.text[self.cursor_pos:]
-                    self.cursor_pos += 1
-
-                    return True
-
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            self.active = self.area.contains(event.pos)
-
-            # set cursor position to the position of the mouse
-            text1 = self.font.render(self.default_text, True, (0, 0, 0))
-            rect1 = text1.get_rect()
-            rect1.x = self.x + 30
-            rect1.centery = self.y + self.height / 2
-
-            # get how far in the text the mouse is
-            self.cursor_pos = len(self.text)
-            pos = rect1.right
-            for i in range(len(self.text)):
-                charSize = self.font.size(self.text[i])[0]
-                pos = pos + charSize
-                if pos > event.pos[0]:
-                    if pos - charSize / 2 > event.pos[0]:
-                        self.cursor_pos = i
-                    else:
-                        self.cursor_pos = i + 1
-                    break
-
+    # add point to point if same x values
+    def add_point(self, x, index, description):
+        # check if point is same x values
+        if index == self.index and x == self.x:
+            self.descriptions.append(description)
+            return True
         return False
-
-    # function that draws the textbox
-    def draw(self, screen):
-        # draw grey line under textbox
-        pygame.draw.line(screen, (220, 220, 220), (self.x, self.y + self.height), (self.x + self.width, self.y + self.height))
-
-        # draw a circle filled in with self.color before text
-        pygame.gfxdraw.filled_circle(screen, int(self.x + 10), int(self.y + self.height / 2), 8, self.color)
-        pygame.gfxdraw.aacircle(screen, int(self.x + 10), int(self.y + self.height / 2), 8, (0, 0, 0))
-
-        # draw the text
-        text = self.font.render(self.default_text + self.text, True, (0, 0, 0))
-        rect = text.get_rect()
-        rect.x = self.x + 30
-        rect.centery = self.y + self.height / 2
-        screen.blit(text, rect)
-
-        # draw cursor at right position if it's active
-        text1 = self.font.render(self.default_text + self.text[:self.cursor_pos], True, (0, 0, 0))
-        rect1 = text1.get_rect()
-        rect1.x = self.x + 30
-        rect1.centery = self.y + self.height / 2
-
-        if self.active and time() % 1 < 0.5:
-            pygame.draw.line(screen, (0, 0, 0), (rect1.right, rect1.y + 1), (rect1.right, rect1.bottom - 1))
-
-        # draw white rectangle at the end of the text
-        pygame.draw.rect(screen, (255, 255, 255), (self.x + self.width, rect.y, 1000, rect.height))
-
-# function to add missing brackets
-def add_missing_brackets(function):
-    # check if function has missing brackets
-    brackets = function.count("(") - function.count(")")
-
-    # if there are missing brackets, add them
-    if brackets > 0:
-        function += ")" * brackets
-
-    return function
-
-# initialize pygame and the screen with caption "Graph plotter"
-pygame.init()
-width = 1000
-height = 800
-screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
-pygame.display.set_caption("Graph plotter")
-
-# set the icon to the icon.png file
-icon = pygame.image.load("icon.png")
-pygame.display.set_icon(icon)
-
-# create an arial font
-middle_font = pygame.font.SysFont("Roboto", 26)
-
-# create graph plotter for function
-graph_plotter = GraphPlotter(screen, width, height - 80)
-
-# define graph area and the function textbox
-graph_area = RectArea(0, 0, width, height - 80)
-textbox = Textbox(20, height - 57, width - 40, 34, "f(x) = ", "", middle_font, graph_plotter.colors[0])
-graph_plotter.add_function("")
-function_index = 0
-function_strs = [""]
-
-# main loop
-frames = 0
-last_time = time()
-last_analysis = time()
-clock = pygame.time.Clock()
-while True:
-    graph_plotter.draw_graphs()
-
-    # draw bar at the bottom of the screen separated by a thin grey line
-    pygame.draw.rect(screen, (255, 255, 255), (0, height - 80, width, 80))
-    pygame.draw.line(screen, (180, 180, 180), (0, height - 80), (width, height - 80), 1)
-
-    # draw function box and name
-    textbox.draw(screen)
-
-    pygame.display.flip()
-
-    for event in pygame.event.get():
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            # check for mouse wheel event and zoom in or out
-            if event.button == 4:
-                graph_plotter.zoom_in(event.pos)
-            elif event.button == 5:
-                graph_plotter.zoom_out(event.pos)
-
-        # if left mouse button is released, set cursor to arrow
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1:
-                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-
-        # check for mouse drag event
-        elif event.type == pygame.MOUSEMOTION:
-            # only drag if mouse is on the graph area
-            if event.buttons[0] == 1 and graph_area.contains(event.pos):
-                graph_plotter.move(event.rel)
-
-        # if space bar is pressed, start or stop animation
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE and not textbox.active:
-                if graph_plotter.animation_speed == 0:
-                    graph_plotter.start_animation()
-                else:
-                    graph_plotter.stop_animation()
-
-            # if down button is pressed, load the next function
-            elif event.key == pygame.K_DOWN:
-                # only load the next function if limit of functions hasn't been reached
-                if function_index < 9:
-                    function_index += 1
-                    if function_index >= len(graph_plotter.functions):
-                        graph_plotter.add_function("")
-                        function_strs.append("")
-
-                    # get function name based on index, starting at f, g, h, ...
-                    function = add_missing_brackets(function_strs[function_index])
-                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, middle_font, graph_plotter.colors[function_index])
-
-            # if up button is pressed, load the previous function
-            elif event.key == pygame.K_UP:
-                # only load the previous function if limit of functions hasn't been reached
-                if function_index > 0:
-                    function_index -= 1
-
-                    # get function name based on index, starting at f, g, h, ...
-                    function = add_missing_brackets(function_strs[function_index])
-                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, middle_font, graph_plotter.colors[function_index])
-
-        # resize the graph plotter if the window is resized
-        elif event.type == pygame.VIDEORESIZE:
-            # change screen size
-            width, height = event.size
-            screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
-
-            # change graph plotter size
-            graph_plotter.resize((width, height - 80))
-
-            # change graph area
-            graph_area = RectArea(0, 0, width, height - 80)
-
-            # change textbox position
-            textbox.resize(20, height - 57, width - 40, 34)
-
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            quit()
-
-        # let the textbox handle the event and refresh functions if changed
-        if textbox.handle_event(event):
-            graph_plotter.replace_function(textbox.text, function_index)
-            function_strs[function_index] = textbox.text
-            graph_plotter.analyse_graphs()
-
-    # if the mouse is over the graph area, change the cursor to hand, if it's over the textbox, change the cursor to ibeam, else to arrow
-    if graph_area.contains(pygame.mouse.get_pos()):
-        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-    elif textbox.area.contains(pygame.mouse.get_pos()):
-        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
-    else:
-        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-
-    # update the frames and time, output log
-    frames += 1
-    if time() - last_time > 1:
-        graph_plotter.print_cache_info()
-        print(f"FPS: {int(frames / (time() - last_time))}")
-        print()
-        last_time = time()
-        frames = 0
-
-    # analyse graphs if enough time has passed
-    if time() - last_analysis > 0.5:
-        graph_plotter.analyse_graphs()
-        last_analysis = time()
-
-    clock.tick(75)
