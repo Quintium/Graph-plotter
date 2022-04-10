@@ -4,15 +4,17 @@ from RectArea import RectArea
 
 # class for a pygame textbox
 class Textbox:
-    def __init__(self, x, y, width, height, default_text, text, font, color):
+    def __init__(self, x, y, width, height, default_text, text, added_text, color):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.area = RectArea(x, y, width, height)
         self.default_text = default_text
+        self.added_text = added_text
         self.text = text
-        self.font = font
+        self.font = pygame.font.SysFont("Roboto", 26)
+        self.number_font = pygame.font.SysFont("Arial", 18)
         self.color = color
         self.active = True
         self.cursor_pos = len(text)
@@ -93,6 +95,13 @@ class Textbox:
         rect.x = self.x + 30
         rect.centery = self.y + self.height / 2
         screen.blit(text, rect)
+
+        # draw added text in grey
+        added_text = self.number_font.render(self.added_text, True, (200, 200, 200))
+        added_rect = added_text.get_rect()
+        added_rect.x = rect.right + 3
+        added_rect.centery = self.y + self.height / 2
+        screen.blit(added_text, added_rect)
 
         # draw cursor at right position if it's active
         text1 = self.font.render(self.default_text + self.text[:self.cursor_pos], True, (0, 0, 0))

@@ -5,16 +5,18 @@ from functools import lru_cache
 # class for functions
 class Function:
     def __init__(self, string):
-        self.string, self.function = self.parse_function(string)	
+        self.string, self.value, self.function = self.parse_function(string)
 
-    # parse function
+    # parse function, returns function string, function constant (if possible), and function
     def parse_function(self, function):
         # strip function of whitespace
         function = function.strip()
 
-        # strip function of f(x)=, g(x)=, y= ...
-        if "=" in function:
-            function = function[function.index("=") + 1:]
+        # strip function of anything before a single equals sign
+        for i in range(len(function)):
+            if function[i] == "=" and not self.char_equals(function, i - 1, "=") and not self.char_equals(function, i + 1, "="):
+                function = function[i + 1:]
+                break
 
         # separate characters from numbers and brackets by multiplication
         for i in range(len(function) - 1, -1, -1):
@@ -38,15 +40,40 @@ class Function:
             if function[i] == "i" and self.is_standalone(function, i):
                 function = function[:i] + "((-1)**(1/2))" + function[i + 1:]
 
-        # try to parse function with sympy
         try:
+            # try to parse function with sympy, works for math operations
             functionExpr = parse_expr(function)
-            return function, sympy.lambdify(sympy.symbols("x"), functionExpr)
-        except:
+        	
+            # check if function is a constant
             try:
-                return function, sympy.lambdify(sympy.symbols("x"), function)
+                functionValue = float(functionExpr)
+                return function, functionValue, lambda x: functionValue
             except:
-                return function, lambda x: None
+                # check if function contains an unknown symbol
+                if len(functionExpr.free_symbols) > 1 or len(functionExpr.free_symbols) == 1 and sympy.symbols("x") not in functionExpr.free_symbols:
+                    return function, None, lambda x: None
+                else:
+                    # check if function is not an expression
+                    if not isinstance(functionExpr, sympy.Expr):
+                        return function, None, lambda x: None
+                    else:
+                        return function, None, sympy.lambdify(sympy.symbols("x"), functionExpr)
+        except:
+            # try to parse function with lambdify, works for python expressions
+            try:
+                f = sympy.lambdify(sympy.symbols("x"), function)
+                
+                # check if function is a constant
+                if "x" not in function:
+                    try:
+                        value = eval(function)
+                        return function, value, lambda x: value
+                    except:
+                        return function, None, None
+                else:
+                    return function, None, f
+            except:
+                return function, None, lambda x: None
 
     # function to add missing brackets
     def add_missing_brackets(self, function):
@@ -74,16 +101,20 @@ class Function:
     # function that returns the value of the function at a given x
     @lru_cache(maxsize=20000)
     def get_value(self, x):
-        # eval functon
-        try:
-            # if value is a float or int, return it
-            value = self.function(x)
-            if isinstance(value, float) or isinstance(value, int):
-                return value
-            else:
+        # if the function is a constant, return the constant
+        if self.value != None:
+            return self.value
+        else:
+            # eval function
+            try:
+                # if value is a float or int, return it
+                value = self.function(x)
+                if isinstance(value, float) or isinstance(value, int):
+                    return value
+                else:
+                    return None
+            except:
                 return None
-        except:
-            return None
 
     # return if function is empty
     def is_empty(self):

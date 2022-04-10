@@ -366,6 +366,8 @@ class GraphPlotter:
                             new_special_points.append([i, "Intersection"])
                             self.add_special_point(x, j, "Intersection", step_size / sensitivity * 2, last_special_points)
                             new_special_points.append([j, "Intersection"])
+                        elif last_values[i] is None or last_values[j] is None:
+                            continue
                         elif numpy.sign(new_values[i] - new_values[j]) != numpy.sign(last_values[i] - last_values[j]):
                             # root finding algorithm to find intersections
                             step = step_size / 4
@@ -477,6 +479,15 @@ class GraphPlotter:
             y = round(self.functions[index].get_value(x), -math.ceil(math.log10(sensitivity)) - 1)
 
         self.special_points.append(Point(x, y, index, description))
+
+    # evaluate function as string without x
+    def evaluate_function_as_string(self, index):
+        value = self.functions[index].value
+        if value is None:
+            return ""
+        else:
+            # round value to 10 digits
+            return " = " + str(round(value, 10))
 
 # class for points
 class Point:

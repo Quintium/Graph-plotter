@@ -4,7 +4,7 @@
 # Python expressions as well as integrals and derivatives are supported via integrate() and diff() functions.
 # The grid is drawn every 2 units of x and y.
 # The graph can be animated by pressing the spacebar.
-# The function can be changed in the bar at the bottom.
+# The function can be changed in the bar at the bottom().
 
 import pygame
 from time import time
@@ -34,15 +34,12 @@ pygame.display.set_caption("Graph plotter")
 icon = pygame.image.load("icon.png")
 pygame.display.set_icon(icon)
 
-# create an arial font
-middle_font = pygame.font.SysFont("Roboto", 26)
-
 # create graph plotter for function
 graph_plotter = GraphPlotter(screen, width, height - 80)
 
 # define graph area and the function textbox
 graph_area = RectArea(0, 0, width, height - 80)
-textbox = Textbox(20, height - 57, width - 40, 34, "f(x) = ", "", middle_font, graph_plotter.colors[0])
+textbox = Textbox(20, height - 57, width - 40, 34, "f(x) = ", "", "", graph_plotter.colors[0])
 graph_plotter.add_function("")
 function_index = 0
 function_strs = [""]
@@ -102,7 +99,7 @@ while True:
 
                     # get function name based on index, starting at f, g, h, ...
                     function = add_missing_brackets(function_strs[function_index])
-                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, middle_font, graph_plotter.colors[function_index])
+                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, graph_plotter.evaluate_function_as_string(function_index), graph_plotter.colors[function_index])
 
             # if up button is pressed, load the previous function
             elif event.key == pygame.K_UP:
@@ -112,7 +109,7 @@ while True:
 
                     # get function name based on index, starting at f, g, h, ...
                     function = add_missing_brackets(function_strs[function_index])
-                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, middle_font, graph_plotter.colors[function_index])
+                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, graph_plotter.evaluate_function_as_string(function_index), graph_plotter.colors[function_index])
 
         # resize the graph plotter if the window is resized
         elif event.type == pygame.VIDEORESIZE:
@@ -138,6 +135,9 @@ while True:
             graph_plotter.replace_function(textbox.text, function_index)
             function_strs[function_index] = textbox.text
             graph_plotter.analyse_graphs()
+
+            # if function is a constant, pass it to textbox
+            textbox.added_text = graph_plotter.evaluate_function_as_string(function_index)
 
     # if the mouse is over the graph area, change the cursor to hand, if it's over the textbox, change the cursor to ibeam, else to arrow
     if graph_area.contains(pygame.mouse.get_pos()):
