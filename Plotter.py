@@ -405,7 +405,7 @@ class GraphPlotter:
                 self.animation_x = self.min_x
             else:
                 # increase x of animation by animation speed converted to units
-                self.animation_x += self.map_value(self.animation_speed * width / 1000, 0, self.width, 0, (self.max_x - self.min_x))
+                self.animation_x += self.map_value(self.animation_speed * self.width / 1000, 0, self.width, 0, (self.max_x - self.min_x))
 
     # start animation
     def start_animation(self):
@@ -552,7 +552,6 @@ class GraphPlotter:
                                     new_special_points.append([i, "Minimum"])
 
                                 # if value is close enough to zero, save it as a zero
-                                print(abs(extr_y))
                                 if abs(extr_y) < step_size / sensitivity * 100:
                                     self.add_special_point(extr_x, i, "Zero", step_size / sensitivity * 2, last_special_points)
                                     new_special_points.append([i, "Zero"])
