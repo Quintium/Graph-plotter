@@ -89,9 +89,6 @@ class Function:
             value = self.function(x)
             if isinstance(value, float) or isinstance(value, int):
                 return value
-            # if value is a complex number, return the real part
-            elif isinstance(value, complex):
-                return value.real
             else:
                 return None
         except:
@@ -365,6 +362,124 @@ class GraphPlotter:
             if not f.is_empty():
                 f.print_cache_info()
 
+    # function that analyses all graphs for zeros, maximums, minimums and intersecitons
+    def analyse_graphs(self):
+        # clear all lists
+        self.zeros = []
+        self.maximums = []
+        self.minimums = []
+        self.intersections = []
+
+        # save last 2 values of each function
+        last_values = []
+        last2_values = []
+
+        # sensitivity for root finding
+        sensitivity = 100000
+
+        # loop through x-values
+        step_size = (self.max_x - self.min_x) / 100
+        for x in numpy.arange(self.min_x, self.max_x, step_size):
+            new_values = [f.get_value(x) for f in self.functions]
+
+            #if len(new_values) > 1: print(new_values[1])
+
+            if len(last_values) > 0:
+                for i in range(len(new_values)):
+                    if new_values[i] is None:
+                        continue
+
+                    if new_values[i] == 0:
+                        self.zeros.append((x, i))
+                    elif last_values[i] is None:
+                        continue
+                    elif new_values[i] > 0 and last_values[i] < 0 or new_values[i] < 0 and last_values[i] > 0:
+                        # root finding algorithm to find zeros
+                        step = step_size / 4
+                        midpoint = x - step_size / 2
+                        while step > step_size / sensitivity:
+                            value = self.functions[i].get_value(midpoint)
+                            if value == 0:
+                                break
+                            elif numpy.sign(value) == numpy.sign(last_values[i]):
+                                midpoint += step
+                                step /= 2
+                            else:
+                                midpoint -= step
+                                step /= 2
+
+                        self.zeros.append((midpoint, i))
+                    else:
+                        # search for intersections
+                        for j in range(i + 1, len(new_values)):
+                            if new_values[j] is None:
+                                continue
+                            if new_values[i] == new_values[j]:
+                                self.intersections.append((x, i, j))
+                            elif numpy.sign(new_values[i] - new_values[j]) != numpy.sign(last_values[i] - last_values[j]):
+                                # root finding algorithm to find intersections
+                                step = step_size / 4
+                                midpoint = x - step_size / 2
+                                while step > step_size / sensitivity:
+                                    iValue = self.functions[i].get_value(midpoint)
+                                    jValue = self.functions[j].get_value(midpoint)
+                                    if iValue == jValue:
+                                        break
+                                    elif numpy.sign(iValue - jValue) == numpy.sign(last_values[i] - last_values[j]):
+                                        midpoint += step
+                                        step /= 2
+                                    else:
+                                        midpoint -= step
+                                        step /= 2
+
+                                self.intersections.append((midpoint, i, j))
+
+                # check for maximums and minimums
+                if len(last2_values) > 0:
+                    for i in range(len(new_values)):
+                        if new_values[i] is None or last_values[i] is None or last2_values[i] is None:
+                            continue
+                        
+                        # check for maximums or minimums
+                        if last_values[i] > last2_values[i] and last_values[i] > new_values[i] or last_values[i] < last2_values[i] and last_values[i] < new_values[i]:
+                            # save whether it's a maximum or minimum
+                            sign = numpy.sign(last_values[i] - last2_values[i])
+
+                            # golden ratio and bounds
+                            gr = (1 + math.sqrt(5)) / 2
+                            a = x - 2 * step_size
+                            b = x
+
+                            # find maximum by golden-section search, inaccuracies because of missing precision
+                            broken = False
+                            while b - a > step_size / sensitivity and not broken:
+                                c = (gr * a + b) / (1 + gr) # so that (b - c) / (c - a) = gr
+                                cy = self.functions[i].get_value(c)
+                                if cy is None:
+                                    continue
+
+                                d = a + b - c
+                                dy = self.functions[i].get_value(d)
+                                if dy is None:
+                                    broken = True
+
+                                if numpy.sign(dy - cy) == 0:
+                                    break
+                                elif numpy.sign(dy - cy) == sign:
+                                    a = c
+                                else:
+                                    b = d
+
+                            if not broken:
+                                # save extremum
+                                if sign == 1:
+                                    self.maximums.append(((a + b) / 2, i))
+                                else:
+                                    self.minimums.append(((a + b) / 2, i))
+
+            last2_values = last_values
+            last_values = new_values
+
 # class for a pygame rect area
 class RectArea:
     def __init__(self, x, y, width, height):
@@ -622,5 +737,6 @@ while True:
         print()
         last_time = time()
         frames = 0
+        graph_plotter.analyse_graphs()
 
     clock.tick(75)
