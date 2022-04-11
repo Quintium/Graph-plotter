@@ -9,7 +9,8 @@
 # The graphs are analysed: intersections, zeros, y-intersects, minimums and maximums.
 # The graph can be saved as a file using the s key.
 
-import pygame, datetime
+import pygame
+import datetime
 from time import time
 from RectArea import RectArea
 from Textbox import Textbox
@@ -52,14 +53,17 @@ def update_function(index, text):
                     function = "Error"
                 else:
                     # pass the input inside the referenced function
-                    function_input = "(" + function[i + 2 : j] + ")"
-                    inserted_function = graph_plotter.get_simplified_function(function_no)
+                    function_input = "(" + function[i + 2: j] + ")"
+                    inserted_function = graph_plotter.get_simplified_function(
+                        function_no)
                     for k in range(len(inserted_function) - 1, -1, -1):
                         if inserted_function[k] == "x" and is_standalone(inserted_function, k):
-                            inserted_function = inserted_function[:k] + function_input + inserted_function[k + 1:]
+                            inserted_function = inserted_function[:k] + \
+                                function_input + inserted_function[k + 1:]
 
                     # replace the function with the new one
-                    function = function[:i] + "(" + inserted_function + ")" + function[j + 1:]
+                    function = function[:i] + \
+                        "(" + inserted_function + ")" + function[j + 1:]
 
     graph_plotter.replace_function(function, index)
 
@@ -68,7 +72,7 @@ def update_function(index, text):
         update_function(f, function_strs[f])
 
 # function that checks if there's a dependency path from function a to function b, returns all possible paths
-def dependency_paths(a, b, avoid_functions = []):
+def dependency_paths(a, b, avoid_functions=[]):
     if a == b:
         # trivial case of recursive function
         return [[a]]
@@ -84,6 +88,7 @@ def dependency_paths(a, b, avoid_functions = []):
                 if f == b:
                     paths.append([a, f])
         return paths
+
 
 # initialize pygame and the screen with caption "Graph plotter"
 pygame.init()
@@ -101,7 +106,8 @@ graph_plotter = GraphPlotter(screen, width, height - 80)
 
 # define graph area and the function textbox
 graph_area = RectArea(0, 0, width, height - 80)
-textbox = Textbox(20, height - 57, width - 40, 34, "f(x) = ", "", "", graph_plotter.colors[0])
+textbox = Textbox(20, height - 57, width - 40, 34, "f(x) = ",
+                  "", "", graph_plotter.colors[0], False)
 function_index = 0
 function_strs = ["" for x in range(10)]
 
@@ -118,7 +124,8 @@ while True:
 
     # draw bar at the bottom of the screen separated by a thin grey line
     pygame.draw.rect(screen, (255, 255, 255), (0, height - 80, width, 80))
-    pygame.draw.line(screen, (180, 180, 180), (0, height - 80), (width, height - 80), 1)
+    pygame.draw.line(screen, (180, 180, 180),
+                     (0, height - 80), (width, height - 80), 1)
 
     # draw function box and name
     textbox.draw(screen)
@@ -154,7 +161,8 @@ while True:
 
             # if s is pressed, save the current graph to a file
             elif event.key == pygame.K_s and not textbox.active:
-                pygame.image.save(screen, "Screenshots/Screenshot_" + datetime.datetime.now().strftime(r"%d_%m_%Y_%H_%M_%S") + ".jpg")
+                pygame.image.save(screen, "Screenshots/Screenshot_" +
+                                  datetime.datetime.now().strftime(r"%d_%m_%Y_%H_%M_%S") + ".png")
 
             # if down button is pressed, load the next function
             elif event.key == pygame.K_DOWN:
@@ -163,8 +171,10 @@ while True:
                     function_index += 1
 
                     # get function name based on index, starting at f, g, h, ...
-                    function = add_missing_brackets(function_strs[function_index])
-                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, graph_plotter.evaluate_function_as_string(function_index), graph_plotter.colors[function_index])
+                    function = add_missing_brackets(
+                        function_strs[function_index])
+                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, graph_plotter.evaluate_function_as_string(
+                        function_index), graph_plotter.colors[function_index], graph_plotter.is_valid_function(function_index))
 
             # if up button is pressed, load the previous function
             elif event.key == pygame.K_UP:
@@ -173,8 +183,10 @@ while True:
                     function_index -= 1
 
                     # get function name based on index, starting at f, g, h, ...
-                    function = add_missing_brackets(function_strs[function_index])
-                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, graph_plotter.evaluate_function_as_string(function_index), graph_plotter.colors[function_index])
+                    function = add_missing_brackets(
+                        function_strs[function_index])
+                    textbox = Textbox(20, height - 57, width - 40, 34, chr(ord('f') + function_index) + "(x) = ", function, graph_plotter.evaluate_function_as_string(
+                        function_index), graph_plotter.colors[function_index], graph_plotter.is_valid_function(function_index))
 
         # resize the graph plotter if the window is resized
         elif event.type == pygame.VIDEORESIZE:
@@ -203,7 +215,11 @@ while True:
             graph_plotter.analyse_graphs()
 
             # if function is a constant, pass it to textbox
-            textbox.added_text = graph_plotter.evaluate_function_as_string(function_index)
+            textbox.added_text = graph_plotter.evaluate_function_as_string(
+                function_index)
+
+            # pass validness of function to textbox
+            textbox.is_valid = graph_plotter.is_valid_function(function_index)
 
     # if the mouse is over the graph area, change the cursor to hand, if it's over the textbox, change the cursor to ibeam, else to arrow
     if graph_area.contains(pygame.mouse.get_pos()):

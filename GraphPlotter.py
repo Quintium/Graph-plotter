@@ -1,4 +1,7 @@
-import pygame, pygame.gfxdraw, math, numpy
+import pygame
+import pygame.gfxdraw
+import math
+import numpy
 from time import time
 from Function import Function
 from StringUtilities import *
@@ -22,12 +25,14 @@ class GraphPlotter:
         # set animation state
         self.animation_speed = 0
         self.animation_x = self.max_x
+        self.last_animation_time = None
         self.reset_timer = None
 
         self.functions = [Function("") for i in range(10)]
 
         # define colors list as red, blue, green, orange, cyan, magenta, brown, yellow, purple, gold
-        self.colors = [(255, 0, 0), (0, 0, 255), (0, 255, 0), (255, 165, 0), (0, 255, 255), (255, 0, 255), (165, 42, 42), (255, 255, 0), (128, 0, 128), (255, 215, 0)]
+        self.colors = [(255, 0, 0), (0, 0, 255), (0, 255, 0), (255, 165, 0), (0, 255, 255),
+                       (255, 0, 255), (165, 42, 42), (255, 255, 0), (128, 0, 128), (255, 215, 0)]
 
         # set font
         self.small_font = pygame.font.SysFont("Arial", 12)
@@ -48,7 +53,8 @@ class GraphPlotter:
         if (self.max_x - self.min_x) < 0.00000001 or (self.max_y - self.min_y) < 0.00000001:
             return
 
-        self.zoom(pos, -self.zoom_speed * (self.max_x - self.min_x), -self.zoom_speed * (self.max_y - self.min_y))
+        self.zoom(pos, -self.zoom_speed * (self.max_x - self.min_x), -
+                  self.zoom_speed * (self.max_y - self.min_y))
 
     # function to zoom out
     def zoom_out(self, pos):
@@ -56,7 +62,8 @@ class GraphPlotter:
         if (self.max_x - self.min_x) > 100000000 or (self.max_y - self.min_y) > 100000000:
             return
 
-        self.zoom(pos, self.zoom_speed * (self.max_x - self.min_x), self.zoom_speed * (self.max_y - self.min_y))
+        self.zoom(pos, self.zoom_speed * (self.max_x - self.min_x),
+                  self.zoom_speed * (self.max_y - self.min_y))
 
     # function to zoom based on mouse position and total change
     def zoom(self, pos, change_x, change_y):
@@ -65,9 +72,11 @@ class GraphPlotter:
         pos_y = self.map_value(pos[1], 0, self.height, self.max_y, self.min_y)
 
         # equation: map_value(pos) in previous zoom = map_value(pos) in new zoom => equation was solved for change in x and y
-        min_x_change = (pos_x - self.min_x) * (1 - (self.max_x - self.min_x + change_x) / (self.max_x - self.min_x))
+        min_x_change = (pos_x - self.min_x) * (1 - (self.max_x -
+                                                    self.min_x + change_x) / (self.max_x - self.min_x))
         max_x_change = min_x_change + change_x
-        min_y_change = (pos_y - self.min_y) * (1 - (self.max_y - self.min_y + change_y) / (self.max_y - self.min_y))
+        min_y_change = (pos_y - self.min_y) * (1 - (self.max_y -
+                                                    self.min_y + change_y) / (self.max_y - self.min_y))
         max_y_change = min_y_change + change_y
 
         # zooming
@@ -79,8 +88,10 @@ class GraphPlotter:
     # move screen
     def move(self, rel):
         # calculate dragged distance to units
-        change_x = -self.map_value(rel[0], 0, self.width, 0, (self.max_x - self.min_x))
-        change_y = self.map_value(rel[1], 0, self.height, 0, (self.max_y - self.min_y))
+        change_x = -self.map_value(rel[0], 0,
+                                   self.width, 0, (self.max_x - self.min_x))
+        change_y = self.map_value(
+            rel[1], 0, self.height, 0, (self.max_y - self.min_y))
 
         self.min_x += change_x
         self.max_x += change_x
@@ -141,46 +152,59 @@ class GraphPlotter:
         for x in numpy.arange(math.ceil(self.min_x / small_grid_unit) * small_grid_unit, self.max_x + limit * 2, small_grid_unit):
             # calculate x value in pixels
             x_pixels = self.map_value(x, self.min_x, self.max_x, 0, self.width)
-            pygame.draw.line(self.screen, (245, 245, 245), (x_pixels, 0), (x_pixels, self.height))
+            pygame.draw.line(self.screen, (245, 245, 245),
+                             (x_pixels, 0), (x_pixels, self.height))
 
         for y in numpy.arange(math.ceil(self.min_y / small_grid_unit) * small_grid_unit, self.max_y + limit * 2, small_grid_unit):
             # calculate y value in pixels
-            y_pixels = self.map_value(y, self.min_y, self.max_y, self.height, 0)
-            pygame.draw.line(self.screen, (245, 245, 245), (0, y_pixels), (self.width, y_pixels))
+            y_pixels = self.map_value(
+                y, self.min_y, self.max_y, self.height, 0)
+            pygame.draw.line(self.screen, (245, 245, 245),
+                             (0, y_pixels), (self.width, y_pixels))
 
         # draw grey grid with distance grid_unit
         for x in numpy.arange(math.ceil(self.min_x / grid_unit) * grid_unit, self.max_x + limit * 2, grid_unit):
             # calculate x value in pixels
             x_pixels = self.map_value(x, self.min_x, self.max_x, 0, self.width)
-            pygame.draw.line(self.screen, (200, 200, 200), (x_pixels, 0), (x_pixels, self.height))
+            pygame.draw.line(self.screen, (200, 200, 200),
+                             (x_pixels, 0), (x_pixels, self.height))
 
         for y in numpy.arange(math.ceil(self.min_y / grid_unit) * grid_unit, self.max_y + limit * 2, grid_unit):
             # calculate y value in pixels
-            y_pixels = self.map_value(y, self.min_y, self.max_y, self.height, 0)
-            pygame.draw.line(self.screen, (200, 200, 200), (0, y_pixels), (self.width, y_pixels))
+            y_pixels = self.map_value(
+                y, self.min_y, self.max_y, self.height, 0)
+            pygame.draw.line(self.screen, (200, 200, 200),
+                             (0, y_pixels), (self.width, y_pixels))
 
         # draw numbers along the axes
         for x in numpy.arange(math.ceil(self.min_x / grid_unit) * grid_unit, self.max_x + limit * 2, grid_unit):
             if abs(x) > grid_unit / 2:
-                text = self.small_font.render(str(int(x)) if power >= 0 else str(round(x, -power)), True, (0, 0, 0))
+                text = self.small_font.render(
+                    str(int(x)) if power >= 0 else str(round(x, -power)), True, (0, 0, 0))
                 text_y = y0_pixels + 1
 
                 # limit text_y to screen
-                text_y = max(1, min(text_y, self.height - text.get_height() - 1))
-                self.screen.blit(text, (self.map_value(x, self.min_x, self.max_x, 0, self.width) - text.get_width() - 1, text_y))
+                text_y = max(
+                    1, min(text_y, self.height - text.get_height() - 1))
+                self.screen.blit(text, (self.map_value(
+                    x, self.min_x, self.max_x, 0, self.width) - text.get_width() - 1, text_y))
 
         for y in numpy.arange(math.ceil(self.min_y / grid_unit) * grid_unit, self.max_y + limit * 2, grid_unit):
             if abs(y) > grid_unit / 2:
-                text = self.small_font.render(str(int(y)) if power >= 0 else str(round(y, -power)), True, (0, 0, 0))
+                text = self.small_font.render(
+                    str(int(y)) if power >= 0 else str(round(y, -power)), True, (0, 0, 0))
                 text_x = x0_pixels + 3
 
                 # limit text_x to screen
                 text_x = max(1, min(text_x, self.width - text.get_width() - 1))
-                self.screen.blit(text, (text_x, self.map_value(y, self.min_y, self.max_y, self.height, 0) - text.get_height() + 1))
+                self.screen.blit(text, (text_x, self.map_value(
+                    y, self.min_y, self.max_y, self.height, 0) - text.get_height() + 1))
 
         # draw x and y axis
-        pygame.draw.line(self.screen, (0, 0, 0), (x0_pixels, 0), (x0_pixels, self.height))
-        pygame.draw.line(self.screen, (0, 0, 0), (0, y0_pixels), (self.width, y0_pixels))
+        pygame.draw.line(self.screen, (0, 0, 0),
+                         (x0_pixels, 0), (x0_pixels, self.height))
+        pygame.draw.line(self.screen, (0, 0, 0),
+                         (0, y0_pixels), (self.width, y0_pixels))
 
     # function that draws the graph
     def draw_function(self, index):
@@ -188,7 +212,8 @@ class GraphPlotter:
         previousY = None
 
         # convert animation x to pixels
-        animation_pixels = self.map_value(self.animation_x, self.min_x, self.max_x, 0, self.width)
+        animation_pixels = self.map_value(
+            self.animation_x, self.min_x, self.max_x, 0, self.width)
 
         # draw the graph
         for pixel in numpy.arange(0, animation_pixels, 3):
@@ -207,7 +232,8 @@ class GraphPlotter:
 
                 if previousX is not None:
                     # draw line from previous point to current point
-                    pygame.draw.line(self.screen, self.colors[index], (previousX, previousY), (x, y))
+                    pygame.draw.line(
+                        self.screen, self.colors[index], (previousX, previousY), (x, y), 1)
 
                 # save previous x and y
                 previousX = x
@@ -239,37 +265,46 @@ class GraphPlotter:
                 else:
                     if len(p.descriptions) > len(hovered_point.descriptions):
                         hovered_point = p
-        
+
         if hovered_point is not None:
             # map x and y of point to screen
-            x = self.map_value(hovered_point.x, self.min_x, self.max_x, 0, self.width)
-            y = self.map_value(hovered_point.y, self.min_y, self.max_y, self.height, 0)
+            x = self.map_value(hovered_point.x, self.min_x,
+                               self.max_x, 0, self.width)
+            y = self.map_value(hovered_point.y, self.min_y,
+                               self.max_y, self.height, 0)
 
             # draw circle with inside color of function
-            pygame.draw.circle(self.screen, self.colors[hovered_point.index], (x, y), 7)
+            pygame.draw.circle(
+                self.screen, self.colors[hovered_point.index], (x, y), 7)
             pygame.gfxdraw.aacircle(self.screen, int(x), int(y), 7, (0, 0, 0))
 
             # draw white rectangle with grey border below the point with all information
 
             # render point coordinates as text
-            coordinates = self.large_font.render("(" + str(hovered_point.x) + ", " + str(hovered_point.y) + ")", True, (0, 0, 0))
+            coordinates = self.large_font.render(
+                "(" + str(hovered_point.x) + ", " + str(hovered_point.y) + ")", True, (0, 0, 0))
 
             # render descriptions as text
-            descriptions = [self.large_font.render(desc, True, (0, 0, 0)) for desc in hovered_point.descriptions]
+            descriptions = [self.large_font.render(
+                desc, True, (0, 0, 0)) for desc in hovered_point.descriptions]
 
             # calculate width and height of rect
-            width = 4 + max([coordinates.get_width()] + [desc.get_width() for desc in descriptions]) + 4
-            height = 3 + coordinates.get_height() + 3 + sum([desc.get_height() for desc in descriptions]) + 3
+            width = 4 + max([coordinates.get_width()] +
+                            [desc.get_width() for desc in descriptions]) + 4
+            height = 3 + coordinates.get_height() + 3 + \
+                sum([desc.get_height() for desc in descriptions]) + 3
 
-            pygame.draw.rect(self.screen, (255, 255, 255), (x - width / 2, y + 10, width, height))
-            pygame.draw.rect(self.screen, (200, 200, 200), (x - width / 2, y + 10, width, height), 1)
+            pygame.draw.rect(self.screen, (255, 255, 255),
+                             (x - width / 2, y + 10, width, height))
+            pygame.draw.rect(self.screen, (200, 200, 200),
+                             (x - width / 2, y + 10, width, height), 1)
 
-            self.screen.blit(coordinates, (x - coordinates.get_width() / 2, y + 13))
+            self.screen.blit(
+                coordinates, (x - coordinates.get_width() / 2, y + 13))
             cur_y = y + 13 + coordinates.get_height() + 3
             for desc in descriptions:
                 self.screen.blit(desc, (x - desc.get_width() / 2, cur_y))
                 cur_y += desc.get_height()
-            
 
         # handle the animation state
         if self.animation_speed == 0:
@@ -286,14 +321,17 @@ class GraphPlotter:
                 self.animation_x = self.min_x
             else:
                 # increase x of animation by animation speed converted to units
-                self.animation_x += self.map_value(self.animation_speed * self.width / 1000, 0, self.width, 0, (self.max_x - self.min_x))
+                self.animation_x += self.map_value(self.animation_speed * self.width / 1000 * (
+                    time() - self.last_animation_time), 0, self.width, 0, (self.max_x - self.min_x))
+                self.last_animation_time = time()
 
     # start animation
     def start_animation(self):
-        self.animation_speed = 3
+        self.animation_speed = 200  # measured in 0.1% of the screen width per second
         self.animation_x = self.min_x
         self.reset_timer = None
-    
+        self.last_animation_time = time()
+
     # stop animation
     def stop_animation(self):
         self.animation_speed = 0
@@ -332,7 +370,8 @@ class GraphPlotter:
                         continue
 
                     if new_values[i] == 0:
-                        self.add_special_point(x, i, "Zero", step_size / sensitivity * 2, last_special_points)
+                        self.add_special_point(
+                            x, i, "Zero", step_size / sensitivity * 2, last_special_points)
                         new_special_points.append([i, "Zero"])
                     elif last_values[i] is None:
                         continue
@@ -351,7 +390,8 @@ class GraphPlotter:
                                 midpoint -= step
                                 step /= 2
 
-                        self.add_special_point(midpoint, i, "Zero", step_size / sensitivity * 2, last_special_points)
+                        self.add_special_point(
+                            midpoint, i, "Zero", step_size / sensitivity * 2, last_special_points)
                         new_special_points.append([i, "Zero"])
 
                     # search for intersections
@@ -359,9 +399,11 @@ class GraphPlotter:
                         if new_values[j] is None:
                             continue
                         if new_values[i] == new_values[j]:
-                            self.add_special_point(x, i, "Intersection", step_size / sensitivity * 2, last_special_points)
+                            self.add_special_point(
+                                x, i, "Intersection", step_size / sensitivity * 2, last_special_points)
                             new_special_points.append([i, "Intersection"])
-                            self.add_special_point(x, j, "Intersection", step_size / sensitivity * 2, last_special_points)
+                            self.add_special_point(
+                                x, j, "Intersection", step_size / sensitivity * 2, last_special_points)
                             new_special_points.append([j, "Intersection"])
                         elif last_values[i] is None or last_values[j] is None:
                             continue
@@ -381,9 +423,11 @@ class GraphPlotter:
                                     midpoint -= step
                                     step /= 2
 
-                            self.add_special_point(midpoint, i, "Intersection", step_size / sensitivity * 2, last_special_points)
+                            self.add_special_point(
+                                midpoint, i, "Intersection", step_size / sensitivity * 2, last_special_points)
                             new_special_points.append([i, "Intersection"])
-                            self.add_special_point(midpoint, j, "Intersection", step_size / sensitivity * 2, last_special_points)
+                            self.add_special_point(
+                                midpoint, j, "Intersection", step_size / sensitivity * 2, last_special_points)
                             new_special_points.append([j, "Intersection"])
 
                 # check for maximums and minimums
@@ -391,7 +435,7 @@ class GraphPlotter:
                     for i in range(len(new_values)):
                         if new_values[i] is None or last_values[i] is None or last2_values[i] is None:
                             continue
-                        
+
                         # check for maximums or minimums
                         if last_values[i] > last2_values[i] and last_values[i] > new_values[i] or last_values[i] < last2_values[i] and last_values[i] < new_values[i]:
                             # save whether it's a maximum or minimum
@@ -405,7 +449,8 @@ class GraphPlotter:
                             # find maximum by golden-section search, inaccuracies because of missing precision
                             broken = False
                             while b - a > step_size / sensitivity and not broken:
-                                c = (gr * a + b) / (1 + gr) # so that (b - c) / (c - a) = gr
+                                # so that (b - c) / (c - a) = gr
+                                c = (gr * a + b) / (1 + gr)
                                 cy = self.functions[i].get_value(c)
                                 if cy is None:
                                     continue
@@ -428,29 +473,37 @@ class GraphPlotter:
 
                                 # save extremum
                                 if sign == 1:
-                                    self.add_special_point(extr_x, i, "Maximum", step_size / sensitivity * 2, last_special_points)
+                                    self.add_special_point(
+                                        extr_x, i, "Maximum", step_size / sensitivity * 2, last_special_points)
                                     new_special_points.append([i, "Maximum"])
                                 else:
-                                    self.add_special_point(extr_x, i, "Minimum", step_size / sensitivity * 2, last_special_points)
+                                    self.add_special_point(
+                                        extr_x, i, "Minimum", step_size / sensitivity * 2, last_special_points)
                                     new_special_points.append([i, "Minimum"])
 
                                 # if value is close enough to zero, save it as a zero
                                 if abs(extr_y) < step_size / sensitivity * 100:
-                                    self.add_special_point(extr_x, i, "Zero", step_size / sensitivity * 2, last_special_points)
+                                    self.add_special_point(
+                                        extr_x, i, "Zero", step_size / sensitivity * 2, last_special_points)
                                     new_special_points.append([i, "Zero"])
 
                                 # if value is close enough to another value, save it as an intersection
                                 for j in range(len(new_values)):
                                     if i == j:
                                         continue
-                                    valueJ = self.functions[j].get_value(extr_x)
+                                    valueJ = self.functions[j].get_value(
+                                        extr_x)
                                     if valueJ is None:
                                         continue
                                     if abs(extr_y - valueJ) < step_size / sensitivity * 100:
-                                        self.add_special_point(extr_x, i, "Intersection", step_size / sensitivity * 2, last_special_points)
-                                        new_special_points.append([i, "Intersection"])
-                                        self.add_special_point(extr_x, j, "Intersection", step_size / sensitivity * 2, last_special_points)
-                                        new_special_points.append([j, "Intersection"])
+                                        self.add_special_point(
+                                            extr_x, i, "Intersection", step_size / sensitivity * 2, last_special_points)
+                                        new_special_points.append(
+                                            [i, "Intersection"])
+                                        self.add_special_point(
+                                            extr_x, j, "Intersection", step_size / sensitivity * 2, last_special_points)
+                                        new_special_points.append(
+                                            [j, "Intersection"])
 
             last2_values = last_values
             last_values = new_values
@@ -459,7 +512,8 @@ class GraphPlotter:
         # check for y-intercepts
         for i in range(len(self.functions)):
             if self.functions[i].get_value(0) is not None:
-                self.add_special_point(0, i, "Y-Intercept", step_size / sensitivity * 2, [])
+                self.add_special_point(
+                    0, i, "Y-Intercept", step_size / sensitivity * 2, [])
 
     # add special point to list
     def add_special_point(self, x, index, description, sensitivity, last_special_points):
@@ -474,11 +528,12 @@ class GraphPlotter:
         for p in self.special_points:
             if p.add_point(x, index, description):
                 return
-        
+
         if description == "Zero":
             y = 0
         else:
-            y = round(self.functions[index].get_value(x), -math.ceil(math.log10(sensitivity)) - 1)
+            y = round(self.functions[index].get_value(
+                x), -math.ceil(math.log10(sensitivity)) - 1)
 
         self.special_points.append(Point(x, y, index, description))
 

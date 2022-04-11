@@ -1,10 +1,12 @@
-import pygame, pygame.gfxdraw, string
+import pygame
+import pygame.gfxdraw
+import string
 from time import time
 from RectArea import RectArea
 
 # class for a pygame textbox
 class Textbox:
-    def __init__(self, x, y, width, height, default_text, text, added_text, color):
+    def __init__(self, x, y, width, height, default_text, text, added_text, color, is_valid):
         self.x = x
         self.y = y
         self.width = width
@@ -13,9 +15,11 @@ class Textbox:
         self.default_text = default_text
         self.added_text = added_text
         self.text = text
+        self.color = color
+        self.is_valid = is_valid
+
         self.font = pygame.font.SysFont("Roboto", 26)
         self.number_font = pygame.font.SysFont("Arial", 18)
-        self.color = color
         self.active = True
         self.cursor_pos = len(text)
 
@@ -33,7 +37,8 @@ class Textbox:
             if event.key == pygame.K_BACKSPACE:
                 # remove last character
                 if self.cursor_pos > 0:
-                    self.text = self.text[:self.cursor_pos - 1] + self.text[self.cursor_pos:]
+                    self.text = self.text[:self.cursor_pos -
+                                          1] + self.text[self.cursor_pos:]
                     self.cursor_pos -= 1
 
                     return True
@@ -51,7 +56,8 @@ class Textbox:
                 # check if character is a letter, number, space or symbol
                 if event.unicode != "" and (event.unicode in string.ascii_letters or event.unicode in string.digits or event.unicode in string.punctuation or event.unicode in string.whitespace):
                     # add character to text
-                    self.text = self.text[:self.cursor_pos] + event.unicode + self.text[self.cursor_pos:]
+                    self.text = self.text[:self.cursor_pos] + \
+                        event.unicode + self.text[self.cursor_pos:]
                     self.cursor_pos += 1
 
                     return True
@@ -83,11 +89,21 @@ class Textbox:
     # function that draws the textbox
     def draw(self, screen):
         # draw grey line under textbox
-        pygame.draw.line(screen, (220, 220, 220), (self.x, self.y + self.height), (self.x + self.width, self.y + self.height))
+        pygame.draw.line(screen, (220, 220, 220), (self.x, self.y +
+                         self.height), (self.x + self.width, self.y + self.height))
 
         # draw a circle filled in with self.color before text
-        pygame.gfxdraw.filled_circle(screen, int(self.x + 10), int(self.y + self.height / 2), 8, self.color)
-        pygame.gfxdraw.aacircle(screen, int(self.x + 10), int(self.y + self.height / 2), 8, (0, 0, 0))
+        pygame.gfxdraw.filled_circle(screen, int(
+            self.x + 10), int(self.y + self.height / 2), 8, self.color)
+        pygame.gfxdraw.aacircle(screen, int(
+            self.x + 10), int(self.y + self.height / 2), 8, (0, 0, 0))
+
+        # draw x inside circle if function is not valid
+        if not self.is_valid:
+            pygame.gfxdraw.line(screen, int(self.x + 7), int(self.y + self.height / 2 - 3), int(
+                self.x + 13), int(self.y + self.height / 2 + 3), (255, 255, 255))
+            pygame.gfxdraw.line(screen, int(self.x + 13), int(self.y + self.height / 2 - 3),
+                                int(self.x + 7), int(self.y + self.height / 2 + 3), (255, 255, 255))
 
         # draw the text
         text = self.font.render(self.default_text + self.text, True, (0, 0, 0))
@@ -97,20 +113,24 @@ class Textbox:
         screen.blit(text, rect)
 
         # draw added text in grey
-        added_text = self.number_font.render(self.added_text, True, (200, 200, 200))
+        added_text = self.number_font.render(
+            self.added_text, True, (200, 200, 200))
         added_rect = added_text.get_rect()
         added_rect.x = rect.right + 3
         added_rect.centery = self.y + self.height / 2
         screen.blit(added_text, added_rect)
 
         # draw cursor at right position if it's active
-        text1 = self.font.render(self.default_text + self.text[:self.cursor_pos], True, (0, 0, 0))
+        text1 = self.font.render(
+            self.default_text + self.text[:self.cursor_pos], True, (0, 0, 0))
         rect1 = text1.get_rect()
         rect1.x = self.x + 30
         rect1.centery = self.y + self.height / 2
 
         if self.active and time() % 1 < 0.5:
-            pygame.draw.line(screen, (0, 0, 0), (rect1.right, rect1.y + 1), (rect1.right, rect1.bottom - 1))
+            pygame.draw.line(screen, (0, 0, 0), (rect1.right,
+                             rect1.y + 1), (rect1.right, rect1.bottom - 1))
 
         # draw white rectangle at the end of the text
-        pygame.draw.rect(screen, (255, 255, 255), (self.x + self.width, rect.y, 1000, rect.height))
+        pygame.draw.rect(screen, (255, 255, 255), (self.x +
+                         self.width, rect.y, 1000, rect.height))

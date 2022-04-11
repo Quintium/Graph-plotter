@@ -1,4 +1,5 @@
-import math, sympy
+import math
+import sympy
 from sympy.parsing.sympy_parser import parse_expr
 from functools import lru_cache
 from StringUtilities import add_missing_brackets, is_standalone, char_exists, char_equals
@@ -9,7 +10,8 @@ class Function:
         if string == "Error":
             self.string, self.value, self.function = "Error", None, None
         else:
-            self.string, self.value, self.function = self.parse_function(string)
+            self.string, self.value, self.function = self.parse_function(
+                string)
 
     # parse function, returns function string, function constant (if possible), and function
     def parse_function(self, function):
@@ -28,17 +30,15 @@ class Function:
         # replace ^ in the function with **
         function = function.replace("^", "**")
 
-        # replace backwards standalone es with exp(1) and i with ((-1)**(1/2)) to avoid sympy confusing it with a variable
+        # replace backwards standalone es with exp(1) to avoid sympy confusing it with a variable
         for i in range(len(function) - 1, -1, -1):
             if function[i] == "e" and is_standalone(function, i):
                 function = function[:i] + "exp(1)" + function[i + 1:]
-            if function[i] == "i" and is_standalone(function, i):
-                function = function[:i] + "((-1)**(1/2))" + function[i + 1:]
 
         try:
             # try to parse function with sympy, works for math operations
             functionExpr = parse_expr(function)
-        	
+
             # check if function is a constant
             try:
                 functionValue = float(functionExpr)
@@ -57,7 +57,7 @@ class Function:
             # try to parse function with lambdify, works for python expressions
             try:
                 f = sympy.lambdify(sympy.symbols("x"), function)
-                
+
                 # check if function is a constant
                 if "x" not in function:
                     try:
@@ -97,4 +97,4 @@ class Function:
 
     # print cache info
     def print_cache_info(self):
-        print(self.get_value.cache_info()) 
+        print(self.get_value.cache_info())
