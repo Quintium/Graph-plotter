@@ -11,17 +11,76 @@ from time import time
 from RectArea import RectArea
 from Textbox import Textbox
 from GraphPlotter import GraphPlotter
+from StringUtilities import add_missing_brackets, is_standalone, char_exists, char_equals
 
-# function to add missing brackets
-def add_missing_brackets(function):
-    # check if function has missing brackets
-    brackets = function.count("(") - function.count(")")
+# function that updates a function
+def update_function(index, text):
+    function = add_missing_brackets(text)
 
-    # if there are missing brackets, add them
-    if brackets > 0:
-        function += ")" * brackets
+    # replace references to other functions with their values1
+    for i in range(len(function) - 1, -1, -1):
+        function_no = ord(function[i]) - ord('f')
+        if 0 <= function_no < 10 and is_standalone(function, i) and char_equals(function, i + 1, "("):
+            # check for recursion (if the function is dependent on itself in some way)
+            paths = dependency_paths(index, function_no)
+            for p in paths:
+                for f in p:
+                    graph_plotter.replace_function("Error", f)
+            if len(paths) > 0:
+                return
 
-    return function
+            # get the text inside the function brackets
+            num_brackets = 1
+            for j in range(i + 2, len(function)):
+                if function[j] == "(":
+                    num_brackets += 1
+                elif function[j] == ")":
+                    num_brackets -= 1
+                    if num_brackets == 0:
+                        break
+
+            if num_brackets == 0 and j != i + 2:
+                # save the dependency
+                if index not in depending_functions[function_no]:
+                    depending_functions[function_no].append(index)
+
+                if not graph_plotter.is_valid_function(function_no):
+                    # if invalid function, replace with error message
+                    function = "Error"
+                else:
+                    # pass the input inside the referenced function
+                    function_input = "(" + function[i + 2 : j] + ")"
+                    inserted_function = graph_plotter.get_simplified_function(function_no)
+                    for k in range(len(inserted_function) - 1, -1, -1):
+                        if inserted_function[k] == "x" and is_standalone(inserted_function, k):
+                            inserted_function = inserted_function[:k] + function_input + inserted_function[k + 1:]
+
+                    # replace the function with the new one
+                    function = function[:i] + "(" + inserted_function + ")" + function[j + 1:]
+
+    graph_plotter.replace_function(function, index)
+
+    # update the depending functions
+    for f in depending_functions[index]:
+        update_function(f, function_strs[f])
+
+# function that checks if there's a dependency path from function a to function b, returns all possible paths
+def dependency_paths(a, b, avoid_functions = []):
+    if a == b:
+        # trivial case of recursive function
+        return [[a]]
+    else:
+        # check if there's a dependency path from any depending functions to b
+        paths = []
+        for f in depending_functions[a]:
+            if f not in avoid_functions:
+                new_paths = dependency_paths(f, b, avoid_functions + [a])
+                for p in new_paths:
+                    paths.append([a] + p)
+            else:
+                if f == b:
+                    paths.append([a, f])
+        return paths
 
 # initialize pygame and the screen with caption "Graph plotter"
 pygame.init()
@@ -40,9 +99,11 @@ graph_plotter = GraphPlotter(screen, width, height - 80)
 # define graph area and the function textbox
 graph_area = RectArea(0, 0, width, height - 80)
 textbox = Textbox(20, height - 57, width - 40, 34, "f(x) = ", "", "", graph_plotter.colors[0])
-graph_plotter.add_function("")
 function_index = 0
-function_strs = [""]
+function_strs = ["" for x in range(10)]
+
+# define functions that are referenced by each other
+depending_functions = [[] for x in range(10)]
 
 # main loop
 frames = 0
@@ -93,9 +154,6 @@ while True:
                 # only load the next function if limit of functions hasn't been reached
                 if function_index < 9:
                     function_index += 1
-                    if function_index >= len(graph_plotter.functions):
-                        graph_plotter.add_function("")
-                        function_strs.append("")
 
                     # get function name based on index, starting at f, g, h, ...
                     function = add_missing_brackets(function_strs[function_index])
@@ -132,7 +190,8 @@ while True:
 
         # let the textbox handle the event and refresh functions if changed
         if textbox.handle_event(event):
-            graph_plotter.replace_function(textbox.text, function_index)
+            update_function(function_index, textbox.text)
+
             function_strs[function_index] = textbox.text
             graph_plotter.analyse_graphs()
 

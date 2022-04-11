@@ -1,6 +1,7 @@
 import pygame, pygame.gfxdraw, math, numpy
 from time import time
 from Function import Function
+from StringUtilities import *
 
 # class for graph plotter
 class GraphPlotter:
@@ -23,7 +24,7 @@ class GraphPlotter:
         self.animation_x = self.max_x
         self.reset_timer = None
 
-        self.functions = []
+        self.functions = [Function("") for i in range(10)]
 
         # define colors list as red, blue, green, orange, cyan, magenta, brown, yellow, purple, gold
         self.colors = [(255, 0, 0), (0, 0, 255), (0, 255, 0), (255, 165, 0), (0, 255, 255), (255, 0, 255), (165, 42, 42), (255, 255, 0), (128, 0, 128), (255, 215, 0)]
@@ -33,10 +34,6 @@ class GraphPlotter:
         self.large_font = pygame.font.SysFont("Arial", 16)
 
         self.special_points = []
-
-    # add function to list
-    def add_function(self, string):
-        self.functions.append(Function(string))
 
     # replace function in list
     def replace_function(self, string, index):
@@ -226,8 +223,8 @@ class GraphPlotter:
 
         # draw function
         for i in range(len(self.functions)):
-            # draw function if the string is not empty
-            if not self.functions[i].is_empty():
+            # draw function if it's valid
+            if self.functions[i].is_valid():
                 self.draw_function(i)
 
         # draw special point with most descriptions
@@ -236,7 +233,7 @@ class GraphPlotter:
             # draw point if mouse is hovered close to it
             x = self.map_value(p.x, self.min_x, self.max_x, 0, self.width)
             y = self.map_value(p.y, self.min_y, self.max_y, self.height, 0)
-            if abs(x - pygame.mouse.get_pos()[0]) < 20 and abs(y - pygame.mouse.get_pos()[1]) < 20:
+            if abs(x - pygame.mouse.get_pos()[0]) < 12 and abs(y - pygame.mouse.get_pos()[1]) < 12:
                 if hovered_point is None:
                     hovered_point = p
                 else:
@@ -305,7 +302,7 @@ class GraphPlotter:
     # print cache info of every function
     def print_cache_info(self):
         for f in self.functions:
-            if not f.is_empty():
+            if f.is_valid():
                 f.print_cache_info()
 
     # function that analyses all graphs for zeros, maximums, minimums and intersecitons
@@ -459,6 +456,11 @@ class GraphPlotter:
             last_values = new_values
             last_special_points = new_special_points
 
+        # check for y-intercepts
+        for i in range(len(self.functions)):
+            if self.functions[i].get_value(0) is not None:
+                self.add_special_point(0, i, "Y-Intercept", step_size / sensitivity * 2, [])
+
     # add special point to list
     def add_special_point(self, x, index, description, sensitivity, last_special_points):
         # check if point is already in list
@@ -488,6 +490,14 @@ class GraphPlotter:
         else:
             # round value to 10 digits
             return " = " + str(round(value, 10))
+
+    # return simplified function
+    def get_simplified_function(self, index):
+        return self.functions[index].string
+
+    # return if function index is valid
+    def is_valid_function(self, index):
+        return self.functions[index].is_valid()
 
 # class for points
 class Point:
