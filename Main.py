@@ -4,9 +4,12 @@
 # Python expressions as well as integrals and derivatives are supported via integrate() and diff() functions.
 # The grid is drawn every 2 units of x and y.
 # The graph can be animated by pressing the spacebar.
-# The function can be changed in the bar at the bottom().
+# The function can be changed in the bar at the bottom.
+# Function can reference other functions.
+# The graphs are analysed: intersections, zeros, y-intersects, minimums and maximums.
+# The graph can be saved as a file using the s key.
 
-import pygame
+import pygame, datetime
 from time import time
 from RectArea import RectArea
 from Textbox import Textbox
@@ -148,6 +151,10 @@ while True:
                     graph_plotter.start_animation()
                 else:
                     graph_plotter.stop_animation()
+
+            # if s is pressed, save the current graph to a file
+            elif event.key == pygame.K_s and not textbox.active:
+                pygame.image.save(screen, "Screenshots/Screenshot_" + datetime.datetime.now().strftime(r"%d_%m_%Y_%H_%M_%S") + ".jpg")
 
             # if down button is pressed, load the next function
             elif event.key == pygame.K_DOWN:
