@@ -22,6 +22,10 @@ class GraphPlotter:
         self.max_y = self.height / 50 / 2
         self.zoom_speed = 0.08
 
+        # save borders of analysed graph
+        self.analysed_min_x = self.min_x
+        self.analysed_max_x = self.max_x
+
         # set animation state
         self.animation_speed = 0
         self.animation_x = self.max_x
@@ -67,6 +71,10 @@ class GraphPlotter:
 
     # function to zoom based on mouse position and total change
     def zoom(self, pos, change_x, change_y):
+        # save borders before zoom
+        old_min_x = self.min_x
+        old_max_x = self.max_x
+
         # convert mouse position to units
         pos_x = self.map_value(pos[0], 0, self.width, self.min_x, self.max_x)
         pos_y = self.map_value(pos[1], 0, self.height, self.max_y, self.min_y)
@@ -85,6 +93,14 @@ class GraphPlotter:
         self.min_y += min_y_change
         self.max_y += max_y_change
 
+        if (self.max_x - self.min_x) * 10 < self.analysed_max_x - self.analysed_min_x or self.max_x - self.min_x > (self.analysed_max_x - self.analysed_min_x) * 10:
+            # analyse if a digit of precision was added/removed
+            self.analyse_graphs()
+        elif change_x > 0:
+            # analyse the parts of the graph that were outside the screen
+            self.analyse_graphs(self.min_x, old_min_x)
+            self.analyse_graphs(old_max_x, self.max_x)
+
     # move screen
     def move(self, rel):
         # calculate dragged distance to units
@@ -97,6 +113,12 @@ class GraphPlotter:
         self.max_x += change_x
         self.min_y += change_y
         self.max_y += change_y
+
+        # analyse new borders
+        if change_x > 0:
+            self.analyse_graphs(self.max_x - change_x, self.max_x)
+        else:
+            self.analyse_graphs(self.min_x, self.min_x - change_x)
 
     # resize screen
     def resize(self, size):
@@ -344,9 +366,16 @@ class GraphPlotter:
                 f.print_cache_info()
 
     # function that analyses all graphs for zeros, maximums, minimums and intersecitons
-    def analyse_graphs(self):
-        # clear special points
-        self.special_points = []
+    def analyse_graphs(self, start = None, end = None):
+        # if start and end are not set, set them to the whole graph
+        if start is None:
+            start = self.min_x
+            end = self.max_x
+            self.special_points = []
+
+            # save analysed borders
+            self.analysed_min_x = self.min_x
+            self.analysed_max_x = self.max_x
 
         # save last 2 values of each function
         last_values = []
@@ -360,7 +389,7 @@ class GraphPlotter:
 
         # loop through x-values
         step_size = (self.max_x - self.min_x) / 100
-        for x in numpy.arange(self.min_x - step_size * 2, self.max_x, step_size):
+        for x in numpy.arange(start - step_size * 2, end, step_size):
             new_values = [f.get_value(x) for f in self.functions]
             new_special_points = []
 
@@ -565,14 +594,18 @@ class Point:
 
     # add point to point if same x values
     def add_point(self, x, index, description):
-        # check if point is same x values
+        # check if point has same x value
         if index == self.index and x == self.x:
             # insert description alphabetically
             if description not in self.descriptions:
+                added = False
                 for i in range(len(self.descriptions)):
                     if description < self.descriptions[i]:
                         self.descriptions.insert(i, description)
+                        added = True
                         break
-
+                if not added:
+                    self.descriptions.append(description)
+            
             return True
         return False

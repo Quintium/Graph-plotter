@@ -117,7 +117,6 @@ depending_functions = [[] for x in range(10)]
 # main loop
 frames = 0
 last_time = time()
-last_analysis = time()
 clock = pygame.time.Clock()
 while True:
     graph_plotter.draw_graphs()
@@ -237,10 +236,5 @@ while True:
         print()
         last_time = time()
         frames = 0
-
-    # analyse graphs if enough time has passed
-    if time() - last_analysis > 0.5:
-        graph_plotter.analyse_graphs()
-        last_analysis = time()
 
     clock.tick(75)
