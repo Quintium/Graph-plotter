@@ -502,8 +502,9 @@ class GraphPlotter:
 # class for points
 class Point:
     def __init__(self, x, y, index, description):
-        self.x = x
-        self.y = y
+        # convert -0 to 0
+        self.x = x if x != 0 else 0
+        self.y = y if y != 0 else 0
         self.index = index
         self.descriptions = [description]
 
@@ -511,6 +512,12 @@ class Point:
     def add_point(self, x, index, description):
         # check if point is same x values
         if index == self.index and x == self.x:
-            self.descriptions.append(description)
+            # insert description alphabetically
+            if description not in self.descriptions:
+                for i in range(len(self.descriptions)):
+                    if description < self.descriptions[i]:
+                        self.descriptions.insert(i, description)
+                        break
+
             return True
         return False

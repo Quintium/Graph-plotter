@@ -45,6 +45,7 @@ class Function:
                 return function, functionValue, lambda x: functionValue
             except:
                 # check if function contains an unknown symbol
+                print(functionExpr.free_symbols)
                 if len(functionExpr.free_symbols) > 1 or len(functionExpr.free_symbols) == 1 and sympy.symbols("x") not in functionExpr.free_symbols:
                     return function, None, None
                 else:
@@ -97,4 +98,4 @@ class Function:
 
     # print cache info
     def print_cache_info(self):
-        print(self.get_value.cache_info())
+        print(self.get_value.cache_info()) 
