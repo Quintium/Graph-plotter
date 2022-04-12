@@ -449,7 +449,7 @@ class GraphPlotter:
                             self.add_special_point(
                                 x, j, "Intersection", step_size / sensitivity * 2, last_special_points)
                         new_special_points.append([j, "Intersection"])
-                    elif last_values[i] is not None and last_values[j] is not None:
+                    elif len(last_values) > 0 and last_values[i] is not None and last_values[j] is not None:
                         if numpy.sign(new_values[i] - new_values[j]) != numpy.sign(last_values[i] - last_values[j]):
                             # root finding algorithm to find intersections
                             step = step_size / 4
@@ -476,7 +476,7 @@ class GraphPlotter:
                             new_special_points.append([j, "Intersection"])
 
                 # check for maximums and minimums
-                if len(last2_values) > 0:
+                if len(last_values) > 0 and len(last2_values) > 0:
                     for i in range(len(new_values)):
                         if new_values[i] is None or last_values[i] is None or last2_values[i] is None:
                             continue

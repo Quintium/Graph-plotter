@@ -1,5 +1,5 @@
 build/
 dist/
 __pycache__/
-Plotter.spec
+*.spec
 Screenshots/
