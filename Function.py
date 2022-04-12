@@ -1,4 +1,5 @@
 import math
+import numpy
 import sympy
 from sympy.parsing.sympy_parser import parse_expr
 from functools import lru_cache
@@ -84,7 +85,7 @@ class Function:
             try:
                 # if value is a float or int, return it
                 value = self.function(x)
-                if isinstance(value, float) or isinstance(value, int):
+                if (isinstance(value, float) or isinstance(value, int)) and not numpy.isnan(value):
                     return value
                 else:
                     return None
