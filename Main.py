@@ -21,7 +21,8 @@ from StringUtilities import add_missing_brackets, is_standalone, char_exists, ch
 def update_function(index, text):
     function = add_missing_brackets(text)
 
-    # replace references to other functions with their values1
+    # replace references to other functions with their values
+    is_error = False
     for i in range(len(function) - 1, -1, -1):
         function_no = ord(function[i]) - ord('f')
         if 0 <= function_no < 10 and is_standalone(function, i) and char_equals(function, i + 1, "("):
@@ -31,7 +32,8 @@ def update_function(index, text):
                 for f in p:
                     graph_plotter.replace_function("Error", f)
             if len(paths) > 0:
-                return
+                is_error = True
+                continue
 
             # get the text inside the function brackets
             num_brackets = 1
@@ -50,7 +52,7 @@ def update_function(index, text):
 
                 if not graph_plotter.is_valid_function(function_no):
                     # if invalid function, replace with error message
-                    function = "Error"
+                    is_error = True
                 else:
                     # pass the input inside the referenced function
                     function_input = "(" + function[i + 2: j] + ")"
@@ -65,7 +67,7 @@ def update_function(index, text):
                     function = function[:i] + \
                         "(" + inserted_function + ")" + function[j + 1:]
 
-    graph_plotter.replace_function(function, index)
+    graph_plotter.replace_function(function if not is_error else "Error", index)
 
     # update the depending functions
     for f in depending_functions[index]:
