@@ -389,28 +389,37 @@ class GraphPlotter:
 
         # loop through x-values
         step_size = (self.max_x - self.min_x) / 100
-        for x in numpy.arange(start - step_size * 2, end, step_size):
+
+        # first run is a test run to test for equal functions -> infinite intersections; or zero functions -> infinite zeros
+        test_run = True
+
+        for x in numpy.arange(start - step_size, end, step_size):
             new_values = [f.get_value(x) for f in self.functions]
             new_special_points = []
 
-            if len(last_values) > 0:
-                for i in range(len(new_values)):
-                    if new_values[i] is None:
-                        continue
+            for i in range(len(new_values)):
+                if new_values[i] is None:
+                    continue
 
-                    if new_values[i] == 0:
+                if new_values[i] == 0:
+                    # add zero if exactly 0
+                    if not test_run:
                         self.add_special_point(
                             x, i, "Zero", step_size / sensitivity * 2, last_special_points)
-                        new_special_points.append([i, "Zero"])
-                    elif last_values[i] is None:
-                        continue
-                    elif new_values[i] > 0 and last_values[i] < 0 or new_values[i] < 0 and last_values[i] > 0:
-                        # root finding algorithm to find zeros
+                    new_special_points.append([i, "Zero"])
+                elif len(last_values) > 0 and last_values[i] is not None:
+                    # check if last value an new value have different signs
+                    if new_values[i] > 0 and last_values[i] < 0 or new_values[i] < 0 and last_values[i] > 0:
+                        # root finding algorithm to find zeros -> bisection method
                         step = step_size / 4
                         midpoint = x - step_size / 2
+                        broken = False
                         while step > step_size / sensitivity:
                             value = self.functions[i].get_value(midpoint)
-                            if value == 0:
+                            if value is None:
+                                broken = True
+                                break
+                            elif value == 0:
                                 break
                             elif numpy.sign(value) == numpy.sign(last_values[i]):
                                 midpoint += step
@@ -419,24 +428,29 @@ class GraphPlotter:
                                 midpoint -= step
                                 step /= 2
 
-                        self.add_special_point(
-                            midpoint, i, "Zero", step_size / sensitivity * 2, last_special_points)
-                        new_special_points.append([i, "Zero"])
+                        # add zero if found
+                        if not broken:
+                            if not test_run:
+                                self.add_special_point(
+                                    midpoint, i, "Zero", step_size / sensitivity * 2, last_special_points)
+                            new_special_points.append([i, "Zero"])
 
-                    # search for intersections
-                    for j in range(i + 1, len(new_values)):
-                        if new_values[j] is None:
-                            continue
-                        if new_values[i] == new_values[j]:
+                # search for intersections
+                for j in range(i + 1, len(new_values)):
+                    if new_values[j] is None:
+                        continue
+
+                    if new_values[i] == new_values[j]:
+                        if not test_run:
                             self.add_special_point(
                                 x, i, "Intersection", step_size / sensitivity * 2, last_special_points)
-                            new_special_points.append([i, "Intersection"])
+                        new_special_points.append([i, "Intersection"])
+                        if not test_run:
                             self.add_special_point(
                                 x, j, "Intersection", step_size / sensitivity * 2, last_special_points)
-                            new_special_points.append([j, "Intersection"])
-                        elif last_values[i] is None or last_values[j] is None:
-                            continue
-                        elif numpy.sign(new_values[i] - new_values[j]) != numpy.sign(last_values[i] - last_values[j]):
+                        new_special_points.append([j, "Intersection"])
+                    elif last_values[i] is not None and last_values[j] is not None:
+                        if numpy.sign(new_values[i] - new_values[j]) != numpy.sign(last_values[i] - last_values[j]):
                             # root finding algorithm to find intersections
                             step = step_size / 4
                             midpoint = x - step_size / 2
@@ -452,11 +466,13 @@ class GraphPlotter:
                                     midpoint -= step
                                     step /= 2
 
-                            self.add_special_point(
-                                midpoint, i, "Intersection", step_size / sensitivity * 2, last_special_points)
+                            if not test_run:
+                                self.add_special_point(
+                                    midpoint, i, "Intersection", step_size / sensitivity * 2, last_special_points)
                             new_special_points.append([i, "Intersection"])
-                            self.add_special_point(
-                                midpoint, j, "Intersection", step_size / sensitivity * 2, last_special_points)
+                            if not test_run:
+                                self.add_special_point(
+                                    midpoint, j, "Intersection", step_size / sensitivity * 2, last_special_points)
                             new_special_points.append([j, "Intersection"])
 
                 # check for maximums and minimums
@@ -502,18 +518,21 @@ class GraphPlotter:
 
                                 # save extremum
                                 if sign == 1:
-                                    self.add_special_point(
-                                        extr_x, i, "Maximum", step_size / sensitivity * 2, last_special_points)
+                                    if not test_run:
+                                        self.add_special_point(
+                                            extr_x, i, "Maximum", step_size / sensitivity * 2, last_special_points)
                                     new_special_points.append([i, "Maximum"])
                                 else:
-                                    self.add_special_point(
-                                        extr_x, i, "Minimum", step_size / sensitivity * 2, last_special_points)
+                                    if not test_run:
+                                        self.add_special_point(
+                                            extr_x, i, "Minimum", step_size / sensitivity * 2, last_special_points)
                                     new_special_points.append([i, "Minimum"])
 
                                 # if value is close enough to zero, save it as a zero
                                 if abs(extr_y) < step_size / sensitivity * 100:
-                                    self.add_special_point(
-                                        extr_x, i, "Zero", step_size / sensitivity * 2, last_special_points)
+                                    if not test_run:
+                                        self.add_special_point(
+                                            extr_x, i, "Zero", step_size / sensitivity * 2, last_special_points)
                                     new_special_points.append([i, "Zero"])
 
                                 # if value is close enough to another value, save it as an intersection
@@ -525,18 +544,21 @@ class GraphPlotter:
                                     if valueJ is None:
                                         continue
                                     if abs(extr_y - valueJ) < step_size / sensitivity * 100:
-                                        self.add_special_point(
-                                            extr_x, i, "Intersection", step_size / sensitivity * 2, last_special_points)
+                                        if not test_run:
+                                            self.add_special_point(
+                                                extr_x, i, "Intersection", step_size / sensitivity * 2, last_special_points)
                                         new_special_points.append(
                                             [i, "Intersection"])
-                                        self.add_special_point(
-                                            extr_x, j, "Intersection", step_size / sensitivity * 2, last_special_points)
+                                        if not test_run:
+                                            self.add_special_point(
+                                                extr_x, j, "Intersection", step_size / sensitivity * 2, last_special_points)
                                         new_special_points.append(
                                             [j, "Intersection"])
 
             last2_values = last_values
             last_values = new_values
             last_special_points = new_special_points
+            test_run = False
 
         # check for y-intercepts
         for i in range(len(self.functions)):
