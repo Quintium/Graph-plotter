@@ -333,10 +333,12 @@ class GraphPlotter:
             self.animation_x = self.max_x
         else:
             if self.reset_timer is not None:
+                # wait one second before starting animation when animation reaches end
                 self.animation_x = self.max_x
                 if time() - self.reset_timer > 1:
                     self.animation_x = self.min_x
                     self.reset_timer = None
+                    self.last_animation_time = time()
             elif self.animation_x > self.max_x:
                 self.reset_timer = time()
             elif self.animation_x < self.min_x:
